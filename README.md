@@ -27,20 +27,6 @@ As a Data Management professional, this project treats data as a high-value prod
 * **Metadata Management:** Using Iceberg catalogs to maintain a single source of truth across hardware reboots.
 * **Regulatory Readiness:** Architected for transparency, ensuring all automated outcomes have a verifiable audit trail.
 
----
-
-## 🗺️ Product Roadmap
-- [x] **Project Inception:** Define Product Vision and Core Strategy.
-- [x] **Governance Setup:** Establish CDMP-aligned repository structure and GitHub Project Board.
-- [x] **Infrastructure (Day 1):** Establish Remote SSH Tunneling & Environment Isolation.
-- [ ] **Storage Init (Day 2):** Initialize External Storage & Apache Iceberg Storage Engine.
-- [ ] **Signal Ingestion:** Connect Home Assistant (Zigbee) and Open Data APIs.
-- [ ] **Product Outcome:** Deploy adaptive logic for high-integrity environmental monitoring.
-
----
-
-## 🛠️ Development Log
-*This section tracks the technical evolution of the platform.*
 
 ### Day 1: Identity & Infrastructure
 - Initialized repository with a product-first architecture.
