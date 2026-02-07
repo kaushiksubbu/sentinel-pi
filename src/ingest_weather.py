@@ -1,0 +1,70 @@
+import duckdb
+import os
+import json
+from datetime import datetime
+
+# --- CONFIGURATION  ---
+PROJECT_ROOT = "/mnt/data/sentinel-pi"
+BRONZE_DIR   = f"{PROJECT_ROOT}/data/bronze"
+# Note: point the DB to the 'warehouse' folder created
+DB_PATH      = f"{PROJECT_ROOT}/data/warehouse/sentinel.db"
+
+# Ensure directories exist
+os.makedirs(BRONZE_DIR, exist_ok=True)
+
+# --- FUNCTION 1: FETCH & LAND (The 'Bronze' Act) ---
+def fetch_and_land_weather():
+    """Fetches raw data and saves it as an immutable JSON file."""
+    print("🛰️ Step 1: Fetching Raw Weather...")
+    
+    # Placeholder for the KNMI API response
+    raw_payload = {
+        "station": "Schiphol",
+        "temp_c": 10.5,
+        "humidity":78,
+        "wind_knts": 14,
+        "timestamp": datetime.now().isoformat()
+    }
+    
+    # Save to Bronze as a 'Point in Time' file
+    timestamp_str = datetime.now().strftime('%Y%m%d_%H%M')
+    file_path = f"{BRONZE_DIR}/weather_{timestamp_str}.json"
+    
+    with open(file_path, 'w') as f:
+        json.dump(raw_payload, f)
+    
+    print(f"✅ Bronze: Data landed at {file_path}")
+    return raw_payload
+
+# --- FUNCTION 2: PROCESS & PROMOTE (The 'Silver' Act) ---
+def promote_to_silver(data):
+    """Takes raw data and inserts it into the Iceberg table."""
+    print("💎 Step 2: Promoting to Silver (Iceberg)...")
+    
+    con = duckdb.connect(DB_PATH)
+    con.execute("INSTALL iceberg; LOAD iceberg;")
+    
+    # Create the Table with Iceberg format
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS weather_silver (
+            station VARCHAR,
+            temp_c DOUBLE,
+            humidity INTEGER,
+            wind_knts INTEGER,
+            ts TIMESTAMP
+        )
+    """)
+    
+    # Insert data
+    con.execute(f"""
+        INSERT INTO weather_silver 
+        VALUES ('{data['station']}', {data['temp_c']}, {data['humidity']}, {data['wind_knts']}, '{data['timestamp']}')
+    """)
+    con.close()
+    print("🏆 Success: Database updated.")
+
+# --- MAIN EXECUTION (The 'Orchestration' Layer) ---
+if __name__ == "__main__":
+    # This flow is what a TPM manages: Fetch -> Land -> Process
+    raw_data = fetch_and_land_weather()
+    promote_to_silver(raw_data)

@@ -18,6 +18,7 @@ This stack is selected for **high-integrity** and **hardware efficiency**, adher
 | **Storage (OTF)** | Apache Iceberg | Transactional integrity & time-travel audits. |
 | **Compute** | DuckDB | High-performance analytical processing on edge hardware. |
 | **Governance** | Great Expectations | Automated Data Contracts (CDMP Standard). |
+| **AI and ML** | Olama | 
 
 ---
 
