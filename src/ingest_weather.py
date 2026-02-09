@@ -32,7 +32,7 @@ def fetch_and_land_weather():
     
     # Save to Bronze as a 'Point in Time' file
     timestamp_str = datetime.now().strftime('%Y%m%d_%H%M')
-    file_path = f"{BRONZE_DIR}/weather_{timestamp_str}.json"
+    file_path = f"{LANDING_DIR}/weather_{timestamp_str}.json"
     
     with open(file_path, 'w') as f:
         json.dump(raw_payload, f)
