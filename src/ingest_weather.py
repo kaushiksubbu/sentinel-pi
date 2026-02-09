@@ -6,14 +6,14 @@ from datetime import datetime
 # --- CONFIGURATION  ---
 # Get the directory where the script lives to make it portable #
 PROJECT_ROOT = "/mnt/data/sentinel-pi"
-BRONZE_DIR   = os.path.join(PROJECT_ROOT, "data/bronze")
+LANDING_DIR   = os.path.join(PROJECT_ROOT, "data/landing_zone")
 # Note: point the DB to the 'warehouse' folder created
 DB_PATH      = os.path.join(PROJECT_ROOT, "data/warehouse/sentinel.db")
 
 # Ensure Root directory exist
 os.makedirs(PROJECT_ROOT, exist_ok=True)
 # Ensure these directories exist before writing
-os.makedirs(os.path.dirname(BRONZE_DIR), exist_ok=True)
+os.makedirs(os.path.dirname(LANDING_DIR), exist_ok=True)
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 # --- FUNCTION 1: FETCH & LAND (The 'Bronze' Act) ---
