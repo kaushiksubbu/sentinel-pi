@@ -1,6 +1,23 @@
+# Environments
 .venv/
 .direnv/
+venv/
+
+# Data and db
 data/
 *.db
-logs/
+
+# Secrets
 .env
+
+# Logs 
+logs/*.log
+logs/
+
+# Python
+__pycache__/
+*.pyc
+
+# Large binaries/models
+ollama/
+models/

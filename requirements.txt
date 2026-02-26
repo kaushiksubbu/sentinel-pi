@@ -1,0 +1,6 @@
+python-dotenv
+duckdb
+requests
+xarray
+netCDF4
+pandas
