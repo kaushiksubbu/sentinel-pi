@@ -55,3 +55,10 @@ This log tracks the architectural evolution of the Sentinel-Pi project. Each rec
 * **Context:** Raw sensor data often contains spikes or nulls.
 * **Decision:** Implement `validate_data()` + Soda Core checks.
 * **Rationale:** Prevents "poisoning" the AI models with false data and provides observability into sensor health (e.g., low battery alerts).
+
+## ADR - 2026-02-28
+* Decided to keep 5-min micro-batch per hour as MVP stage; future streaming mode will replace this once schema, data reliability, and governance are validated.
+* Source fidelity in filenames prioritizes auditability over downstream tooling convenience.
+* Micro-batching preserves event-level data with timestamps inside JSON; ensures traceable provenance.
+* Observability/logging confirms ingestion is happening correctly; no missing messages detected in the latest run.
+* Governance trade-offs: hourly sampling vs full streaming is an explicit, controlled decision.
