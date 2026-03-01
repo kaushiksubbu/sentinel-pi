@@ -39,5 +39,5 @@ As a Data Management professional, this project treats data as a high-value prod
 
 ## 👤 Contact & Links
 - **GitHub Profile:** [kaushiksubbu](https://github.com/kaushiksubbu)
-- **LinkedIn:** [Insert your LinkedIn Link]
-- **Project Board:** [Insert Link to your GitHub Project Board]
+- **LinkedIn:** 
+- **Project Board:** 
