@@ -1,6 +1,7 @@
 # save_weather_to_duckdb.py
 import db_utils
-
+import logging
+from datetime import datetime
 
 def save_weather_to_duckdb(db_path: str, table: str, data: dict, station_id: int):
     """
@@ -8,30 +9,28 @@ def save_weather_to_duckdb(db_path: str, table: str, data: dict, station_id: int
     """
     con = db_utils.connect_to_db(db_path)
 
-    # 1. Schema for weather table
-    schema = {
-        "timestamp": "TIMESTAMP PRIMARY KEY",
-        "station_id": "INTEGER",
-        "temperature_c": "DOUBLE",
-        "humidity_pct": "DOUBLE",
+    # Build DICT row (not tuple)
+    row = {
+        "timestamp": data["timestamp"],
+        "station_id": station_id,
+        "temp": data["temp"],
+        "hum": data["hum"],
     }
 
-    db_utils.create_table_if_not_exists(con, table, schema)
+    # Use dict directly for schema inference
+    inferred_schema = db_utils.infer_schema(row)
+    logging.info(f"Inferred schema for KNMI: {inferred_schema}")
 
-    # 2. Single row
-    row = (
-        data["timestamp"],
-        station_id,
-        data["temp"],
-        data["hum"],
-    )
+    # Create table if needed
+    db_utils.create_table_if_not_exists(con, table, inferred_schema)
 
-    # 3. Insert
+    # Insert single row (list with 1 dict)
     db_utils.upsert_or_append(
         con=con,
         table=table,
-        rows=[row],
+        rows=[row],  # List of dicts
         on_conflict=None,
     )
 
     db_utils.close_db(con)
+    logging.info(f"Saved KNMI weather data for station {station_id}")

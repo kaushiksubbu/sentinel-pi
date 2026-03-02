@@ -1,6 +1,8 @@
 # db_utils.py
 import duckdb
 import os
+import datetime
+import logging
 
 
 def ensure_db_dir(db_path: str):
@@ -37,29 +39,26 @@ def create_table_if_not_exists(
     con.execute(query)
 
 
-def upsert_or_append(
-    con: duckdb.DuckDBPyConnection,
-    table: str,
-    rows: list[tuple],
-    on_conflict: str = None,
-):
-    """
-    Insert rows into table.
-    rows: list of tuples matching the table columns in order.
-    """
+def upsert_or_append(con, table: str, rows: list, on_conflict=None):
     if not rows:
         return
-
-    n_cols = len(rows[0])
-    placeholders = "(" + ", ".join("?" * n_cols) + ")"
-
-    if on_conflict:
-        query = f"INSERT INTO {table} VALUES {placeholders} ON CONFLICT {on_conflict}"
-    else:
-        query = f"INSERT INTO {table} VALUES {placeholders}"
-
-    con.executemany(query, rows)
-
+    
+    # Handle both dicts and tuples
+    processed_rows = []
+    for row in rows:
+        if isinstance(row, dict):
+            # Convert dict to tuple using schema order
+            columns = list(row.keys())
+            processed_rows.append(tuple(row[col] for col in columns))
+        else:
+            # Already tuple
+            processed_rows.append(row)
+    
+    columns = list(rows[0].keys()) if isinstance(rows[0], dict) else None
+    placeholders = ', '.join(['?' for _ in processed_rows[0]])
+    query = f"INSERT INTO {table} VALUES ({placeholders})"
+    
+    con.executemany(query, processed_rows)
 
 def read_query(
     db_path: str,
@@ -98,3 +97,25 @@ def read_table(
         sql += f" LIMIT {limit}"
 
     return read_query(db_path, sql)
+
+def infer_schema(sample_row: dict) -> dict:
+    """Dynamically infer DuckDB column types - NO IMPORTS NEEDED"""
+    schema = {}
+    
+    for col, value in sample_row.items():
+        value_type = type(value).__name__
+        
+        if value is None or value == "":
+            schema[col] = "VARCHAR"
+        elif value_type == 'str':
+            schema[col] = "VARCHAR"
+        elif value_type == 'datetime':
+            schema[col] = "TIMESTAMP"
+        elif value_type in ('int', 'float'):
+            schema[col] = "DOUBLE"
+        elif value_type == 'bool':
+            schema[col] = "BOOLEAN"
+        else:
+            schema[col] = "VARCHAR"
+    
+    return schema

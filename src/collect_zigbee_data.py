@@ -2,6 +2,7 @@
 import os
 import time
 import json
+import logging
 
 from mqtt_client import create_long_lived_client, create_one_shot_client
 from dotenv import load_dotenv

@@ -62,3 +62,7 @@ This log tracks the architectural evolution of the Sentinel-Pi project. Each rec
 * Micro-batching preserves event-level data with timestamps inside JSON; ensures traceable provenance.
 * Observability/logging confirms ingestion is happening correctly; no missing messages detected in the latest run.
 * Governance trade-offs: hourly sampling vs full streaming is an explicit, controlled decision.
+
+## ADR - 2026-03-01
+* Genericized db_utils to create tables dynamically based on incoming data - though this is loading JSONs as Varchar - this is due to how the schema is infered. Also adds speed to processing.
+* Move successfully processed files to /processed folder to avoid duplicate processing,

@@ -32,11 +32,17 @@ load_dotenv("/mnt/data/sentinel-pi/.env")
 
 # --- Paths ---
 BRONZE_LANDING = "/mnt/data/sentinel-pi/data/bronze/landing_zone"
-BRONZE_DB     = "/mnt/data/sentinel-pi/data/duckdb/bronze_zigbee.db"
+BRONZE_DB     = "/mnt/data/sentinel-pi/data/bronze/raw_source.db"
 SILVER_DB     = "/mnt/data/sentinel-pi/data/silver/master_data.db"
 PROJECT_DIR   = "/mnt/data/sentinel-pi"
 VENV_PYTHON   = "/mnt/data/sentinel-pi/.venv/bin/python3"
 COLLECT_ZIGBEE_SCRIPT = "/mnt/data/sentinel-pi/src/collect_zigbee_data.py"
+
+# --- Constants ---
+BRONZE_ZIGBEE_TBL = "zigbee_raw"
+BRONZE_KNMI_TBL   = "knmi_raw"
+SILVER_KNMI_TBL   = "weather_observations"
+SILVER_ZIGBEE_TBL = "zigbee_events"
 
 def validate_data(data, station_id):
     """Data quality gate for KNMI."""
@@ -76,7 +82,8 @@ def load_knmi(file_path):
             if is_valid:
                 save_weather_to_duckdb(
                     db_path=SILVER_DB,
-                    table="weather_observations",
+ #                   table="weather_observations",
+                    table=SILVER_KNMI_TBL,
                     data=weather,
                     station_id=int(s_id),
                 )
@@ -112,13 +119,10 @@ def collect_zigbee():
 def load_zigbee():
     logging.info("Loading Zigbee data from Bronze JSONs → Bronze DuckDB table...")
     load_zigbee_to_duckdb(
-        db_path=BRONZE_DB,
-        table="bronze_zigbee",
+        db_path=BRONZE_DB,  
+        table=BRONZE_ZIGBEE_TBL,
         landing_dir=BRONZE_LANDING,
     )
-    # Zigbee stays in BRONZE DB; you filter/process later
-    # (e.g., via SQL or a next‑step ETL script to Silver)
-
 
 # --- Main entrypoint (master ingest) ---
 def main():
@@ -136,11 +140,8 @@ def main():
 
     # 3. Collect Zigbee → Bronze (JSONs)
     collect_zigbee()
-    # # WAIT 5 minutes to let Zigbee collect messages
-    # logging.info("Waiting 5 minutes to collect Zigbee messages...")
-    # time.sleep(5 * 60)
 
-    # 4. Load Zigbee (Bronze JSONs → Bronz DuckDB table)
+    # 4. Load Zigbee (Bronze JSONs → Bronze DuckDB table)
     load_zigbee()
 
 
