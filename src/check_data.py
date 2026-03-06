@@ -2,7 +2,7 @@ import xarray as xr
 import os
 
 # Find the file you just downloaded
-landing_dir = "/mnt/data/sentinel-pi/data/landing_zone"
+landing_dir = "/mnt/data/sentinel-pi/data/bronze/landing_zone"
 files = [f for f in os.listdir(landing_dir) if f.endswith('.nc')]
 latest_file = os.path.join(landing_dir, files[0])
 
@@ -20,6 +20,8 @@ try:
     temp_data = ds.sel(station=station_id)
     current_temp = temp_data['ta'].values
     humidity=temp_data['rh'].values
+    print(temp_data.data_vars)
+    print(temp_data.dims)
     
     print(f"Station: Lelystad (06269)")
     print(f"Temperature: {current_temp} °C")

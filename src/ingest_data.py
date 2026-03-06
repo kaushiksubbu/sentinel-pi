@@ -4,9 +4,11 @@ import logging
 import subprocess
 import sys
 import time
-
+from load_knmi_to_bronze import load_knmi_files_to_bronze
 from datetime import datetime
 from dotenv import load_dotenv
+
+from transform_knmi_to_silver import transform_knmi_to_silver
 
 LOG_FILE = "/mnt/data/sentinel-pi/logs/cron.log"
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
@@ -41,8 +43,7 @@ COLLECT_ZIGBEE_SCRIPT = "/mnt/data/sentinel-pi/src/collect_zigbee_data.py"
 # --- Constants ---
 BRONZE_ZIGBEE_TBL = "zigbee_raw"
 BRONZE_KNMI_TBL   = "knmi_raw"
-SILVER_KNMI_TBL   = "weather_observations"
-SILVER_ZIGBEE_TBL = "zigbee_events"
+SILVER_WEATHER_TBL   = "weather_silver"
 
 def validate_data(data, station_id):
     """Data quality gate for KNMI."""
@@ -67,35 +68,6 @@ def collect_knmi():
     except Exception as e:
         logging.error(f"KNMI collection failed: {str(e)}")
         raise
-
-
-# --- 2. Load KNMI (Bronze → Silver) ---
-def load_knmi(file_path):
-    STATIONS = ['06269', '06240']  # Lelystad, Schiphol
-
-    logging.info("Starting KNMI data load (Bronze → Silver)...")
-    for s_id in STATIONS:
-        try:
-            weather = extract_station_data(file_path, s_id)
-            is_valid, reason = validate_data(weather, s_id)
-
-            if is_valid:
-                save_weather_to_duckdb(
-                    db_path=SILVER_DB,
- #                   table="weather_observations",
-                    table=SILVER_KNMI_TBL,
-                    data=weather,
-                    station_id=int(s_id),
-                )
-                logging.info(f"DATA_SUCCESS | Station: {s_id} | Weather: {weather}")
-            else:
-                logging.warning(
-                    f"DATA_QUALITY_ALERT | Station: {s_id} | Reason: {reason} | Weather: {weather}"
-                )
-
-        except Exception as e:
-            logging.error(f"STATION_ERROR | Station: {s_id} | {str(e)}")
-
 
 # --- 3. Collect Zigbee → Bronze (JSON files) ---
 def collect_zigbee():
@@ -134,14 +106,17 @@ def main():
     if not knmi_file:
         logging.warning("No KNMI file collected; skipping KNMI load.")
         return
+    
+    # 2. Load KNMI landing zone → Bronze DuckDB
+    load_knmi_files_to_bronze()    
+    
+    # 3. Transform KNMI Bronze → Silver
+    transform_knmi_to_silver()    
 
-    # 2. Load KNMI (Bronze → Silver DuckDB)
-    load_knmi(knmi_file)
-
-    # 3. Collect Zigbee → Bronze (JSONs)
+    # 4. Collect Zigbee → landing zone
     collect_zigbee()
-
-    # 4. Load Zigbee (Bronze JSONs → Bronze DuckDB table)
+    
+    # 5. Load Zigbee → Bronze DuckDB
     load_zigbee()
 
 

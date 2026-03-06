@@ -66,3 +66,28 @@ This log tracks the architectural evolution of the Sentinel-Pi project. Each rec
 ## ADR - 2026-03-01
 * Genericized db_utils to create tables dynamically based on incoming data - though this is loading JSONs as Varchar - this is due to how the schema is infered. Also adds speed to processing.
 * Move successfully processed files to /processed folder to avoid duplicate processing,
+
+## ADR - 2026-03-03
+* Bronze stores raw observations at source frequency.
+Silver applies validation and conforms schema at atomic granularity.
+Gold aggregates to hourly windows for analytics and AI consumption.
+AI inference operates exclusively on Gold models to ensure semantic stability and cost efficiency.
+
+## ADR - 2026-03-06
+new storage model updated
+/sentinel-pi/data/
+├── bronze/
+│   ├── landing_zone/
+│   │   └── processed/
+│   └── raw_source.db
+├── silver/
+│   └── master_data.db
+├── gold/
+│   └── analytics.db
+├── reference/
+│   └── reference.db
+└── ops/
+    └── ops.db          ← NEW
+        watermarks      ← last processed timestamp per source
+        pipeline_logs   ← future pipeline run history
+        dq_summary      ← future DQ reporting

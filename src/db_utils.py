@@ -99,7 +99,10 @@ def read_table(
     return read_query(db_path, sql)
 
 def infer_schema(sample_row: dict) -> dict:
-    """Dynamically infer DuckDB column types - NO IMPORTS NEEDED"""
+    """Dynamically infer DuckDB column types - NO IMPORTS NEEDED 
+    WARNING: Prototype use only - Donot use for Bronze or Silver table creation.
+    Schema must be explicit in production layers.
+    """
     schema = {}
     
     for col, value in sample_row.items():
@@ -119,3 +122,61 @@ def infer_schema(sample_row: dict) -> dict:
             schema[col] = "VARCHAR"
     
     return schema
+
+def create_table_with_ddl(
+    con: duckdb.DuckDBPyConnection,
+    ddl: str,
+    ):
+    """
+    Creates table using raw DDL string.
+    Use when schema requires PRIMARY KEY, 
+    constraints, or complex column definitions.
+    Simple schemas use create_table_if_not_exists instead.
+    """
+    con.execute(ddl)
+
+def bulk_insert_ignore(
+    con: duckdb.DuckDBPyConnection,
+    table: str,
+    rows: list,
+) -> dict:
+    """
+    Bulk insert rows using INSERT OR IGNORE.
+    Counts attempted, inserted, and duplicate rows.
+    Returns dict with counts for logging and observability.
+    """
+    if not rows:
+        return {"attempted": 0, "inserted": 0, "duplicates": 0}
+
+    columns = list(rows[0].keys())
+    placeholders = ", ".join(["?" for _ in columns])
+    col_names = ", ".join(columns)
+
+    insert_sql = f"""
+        INSERT OR IGNORE INTO {table} ({col_names})
+        VALUES ({placeholders})
+    """
+
+    tuples = [tuple(row[c] for c in columns) for row in rows]
+    
+    # Count before insert
+    count_before = con.execute(
+        f"SELECT COUNT(*) FROM {table}"
+    ).fetchone()[0]
+    
+    con.executemany(insert_sql, tuples)
+    
+    # Count after insert
+    count_after = con.execute(
+        f"SELECT COUNT(*) FROM {table}"
+    ).fetchone()[0]
+
+    attempted  = len(tuples)
+    inserted   = count_after - count_before
+    duplicates = attempted - inserted
+
+    return {
+        "attempted":  attempted,
+        "inserted":   inserted,
+        "duplicates": duplicates,
+    }

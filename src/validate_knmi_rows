@@ -1,0 +1,26 @@
+def validate_knmi_rows(
+    bronze_rows: list[tuple],
+) -> list[tuple]:
+    """
+    Validates Bronze rows.
+    Returns Silver-ready rows — ALL rows, valid and invalid.
+    Never drops a row.
+    Single responsibility: DQ only.
+    """
+    silver_rows = []
+    for row in bronze_rows:
+        observed_at, stationname, ta, rh, ff, source_file = row
+        is_valid, dq_flag = validate_knmi_row(ta, rh)
+        silver_rows.append((
+            observed_at,
+            stationname,
+            'knmi',
+            ta,
+            rh,
+            ff,
+            is_valid,
+            dq_flag,
+            source_file,
+            datetime.now(timezone.utc),
+        ))
+    return silver_rows
