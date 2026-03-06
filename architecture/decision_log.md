@@ -74,20 +74,69 @@ Gold aggregates to hourly windows for analytics and AI consumption.
 AI inference operates exclusively on Gold models to ensure semantic stability and cost efficiency.
 
 ## ADR - 2026-03-06
-new storage model updated
+The platform requires clear separation between:
+raw ingestion
+transformed datasets
+analytics outputs
+operational metadata
+
+A modular directory structure improves data lineage, governance, and maintainability.
+
+Decision
+Adopt a layered storage structure aligned with medallion architecture.
+
 /sentinel-pi/data/
-├── bronze/
-│   ├── landing_zone/
-│   │   └── processed/
-│   └── raw_source.db
-├── silver/
-│   └── master_data.db
-├── gold/
-│   └── analytics.db
-├── reference/
-│   └── reference.db
-└── ops/
-    └── ops.db          ← NEW
-        watermarks      ← last processed timestamp per source
-        pipeline_logs   ← future pipeline run history
-        dq_summary      ← future DQ reporting
+
+bronze/
+    landing_zone/        # incoming raw files
+        processed/       # archived after ingestion
+    raw_source.db        # structured raw storage
+
+silver/
+    master_data.db       # validated, standardized datasets
+
+gold/
+    analytics.db         # aggregated analytics datasets
+
+reference/
+    reference.db         # lookup tables, station metadata
+
+ops/
+    ops.db               # operational metadata
+Operational Metadata Tables
+
+ops.db
+
+watermarks
+    last processed timestamp per pipeline
+
+pipeline_logs
+    execution history
+
+dq_summary
+    aggregated data quality metrics
+
+
+Rationale
+This structure enables:
+clear data lineage
+operational observability
+independent lifecycle management of datasets
+
+Future Evolution
+Planned improvements:
+Parquet storage for Silver layer
+record-level error isolation via Dead Letter Queue
+containerized pipeline execution
+
+# SCALING NOTES — Phase 3+
+# Current: DuckDB tables, hourly batch, <1K rows/day
+# Scale trigger: >100K rows/day or query latency >1s
+# Solution: Parquet partitioned by date, Iceberg versioning
+# Migration: no schema changes required
+
+Single canonical Silver table decision
+Modular monolith over microservices
+Batch over streaming — Zigbee MVP gate
+Option A Bronze duplicate strategy
+validate_knmi_row thresholds
