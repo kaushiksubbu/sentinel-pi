@@ -20,4 +20,7 @@ __pycache__/
 
 # Large binaries/models
 ollama/
-models/
+models/src/scratch.py
+
+#Scratch test files
+src/scratch.py
