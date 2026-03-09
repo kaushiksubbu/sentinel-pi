@@ -1,6 +1,11 @@
-# 📔 Decision Log: Sentinel-Pi
+# 📔 Architecture Decision Records (ADR): Sentinel-Pi
 
-This log tracks the architectural evolution of the Sentinel-Pi project. Each record follows a consistent format to ensure traceability and clarity for Module 1 and beyond.
+This repository uses ADRs to document significant architectural and data governance decisions.
+
+Format: Context → Decision → Rationale → Consequences
+
+ADR numbering is chronological and immutable.
+New decisions never modify old ADRs — they supersede them.
 
 ---
 
@@ -43,11 +48,15 @@ This log tracks the architectural evolution of the Sentinel-Pi project. Each rec
 * **Consequences:** Limited to quantized models due to Pi RAM constraints (8GB).
 
 ## [ADR-006] Modular Utility Architecture
-* **Status:** Accepted / Implemented
+* **Status:** Resolved → superseded by ADR-011
 * **Date:** 2026-02-10
+* **Resolved:** 2026-03-07
 * **Context:** Monolithic scripts were becoming difficult to scale and test.
 * **Decision:** Refactor into `src/utils/` and `src/processors/`.
-* **Rationale:** Separates extraction logic from database logic. Makes adding Source D (Zigbee) possible without breaking Source A (KNMI).
+* **Rationale:** Separates extraction logic from database logic. Makes adding 
+  Zigbee possible without breaking KNMI.
+* **Resolution:** Implemented as modular read/validate/write functions per 
+  source. See ADR-011 for full pattern decision and Docker migration path.
 
 ## [ADR-007] Lightweight Data Quality (DQ) Layer
 * **Status:** Proposed (Planned for Week 2/3)
@@ -242,3 +251,280 @@ Consequences:
 
 On failure — entire batch retried next run. Small overlap risk mitigated by INSERT OR IGNORE.
 TODO Phase 2: Dead Letter Queue for record-level error isolation. Failed rows isolated, successful rows committed.
+
+# [ADR-013] Pinned Requirements File as Venv Safety Net
+Status: Accepted / Implemented
+Date: 2026-03-08
+Context:
+Server operations on the Pi broke the virtual environment silently. xarray and duckdb modules became unavailable. Cron pipeline failed for multiple hours before detected. Unpinned requirements.txt existed but listed package names only — no versions. Latest version installs on rebuild may break code.
+Incident:
+ModuleNotFoundError: No module named 'xarray'
+ModuleNotFoundError: No module named 'duckdb'
+Pipeline ran degraded — Zigbee Silver continued, KNMI Bronze/Silver failed.
+Decision:
+Replace unpinned requirements.txt with pinned version output from pip freeze. All dependencies including transitive dependencies captured at exact versions.
+Rationale:
+
+Pinned versions = reproducible environment every rebuild
+pip install -r requirements.txt restores exact working state
+Transitive dependencies captured — manual lists miss these
+One command recovery until Docker Phase 2
+
+Recovery Command:
+bash/mnt/data/sentinel-pi/.venv/bin/python3 -m pip install -r requirements.txt
+Consequences:
+
+requirements.txt must be updated after every intentional package upgrade
+Docker Phase 2 supersedes this — containers carry own dependencies
+This is a temporary safety net, not a permanent solution
+
+Permanent Solution: Docker Phase 2 — containers isolate dependencies from host server operations entirely.
+
+# [ADR-014] NAS Mount Permanence via fstab UUID
+Status: Accepted / Implemented
+Date: 2026-03-08
+Context:
+Server operations changed the NAS mount location from /mnt/data to /media/m-m/c28c2621-fe58-4591-8. All pipeline scripts reference /mnt/data/sentinel-pi via config.py. Mount change caused silent path failures across entire platform.
+Incident:
+Pipeline scripts could not locate databases
+/mnt/data/sentinel-pi path unavailable
+Decision:
+Mount NAS permanently via /etc/fstab using full UUID with nofail flag:
+UUID=c28c2621-fe58-4591-8009-84983b3938bf /mnt/data ext4 defaults,nofail 0 2
+Rationale:
+
+UUID-based mount survives device path changes (sda1 → sdb1 etc.)
+nofail prevents Pi boot hang if NAS unavailable
+Permanent mount survives reboots — temporary mount does not
+Single mount point /mnt/data is hardcoded in config.py — must never change
+
+Consequences:
+
+Any NAS replacement requires fstab UUID update
+/mnt/data path is now a platform constant — treat as locked
+Added to PI_INFRASTRUCTURE_CONSTRAINTS.md
+
+Safe Rule:
+
+"If a change affects /mnt/data mount — stop and check fstab and config.py first."
+
+
+## [ADR-015] Iceberg-First Data Layer Strategy
+
+**Status:** Accepted — Backlog (Blocked by Parquet migration)
+**Date:** 2026-03-09
+
+**Context:**
+Current data layer uses DuckDB tables. Enterprise standard requires modern
+table semantics — schema evolution, time travel, branching — without
+immediately committing to a cloud vendor.
+
+**Decision:**
+Migrate to Apache Iceberg tables in sequence:
+```
+DuckDB tables → Parquet files → Iceberg tables
+```
+Use DuckDB + Iceberg locally on Raspberry Pi before cloud deployment.
+Delay cloud-specific technologies (S3, Snowflake, Databricks) until
+core Iceberg skills are mastered.
+
+**Rationale:**
+- Iceberg skills are portable across AWS/Azure/GCP and Snowflake/Databricks
+- Schema evolution without full rewrites
+- Time-travel and snapshot queries for ML experiments
+- Local Iceberg + DuckDB keeps stack lightweight for Pi constraints
+- Vendor-agnostic foundation before cloud commitment
+
+**Sequence:**
+```
+Phase 1 → DuckDB tables (current)
+Phase 2 → Parquet migration (ADR backlog)
+Phase 3 → Iceberg migration (this ADR)
+```
+
+**Consequences:**
+- Parquet migration must complete before Iceberg migration begins
+- No schema changes required between phases
+- Blocked by: Phase 1 closure + Parquet migration
+
+---
+
+## [ADR-016] Orchestrator Selection Strategy
+
+**Status:** Accepted — Planned Phase 2
+**Date:** 2026-03-09
+
+**Context:**
+Cron is current orchestration. As pipeline complexity grows —
+retry logic, dependency management, observability — cron becomes
+insufficient. Pi resource constraints limit orchestrator choice.
+Dutch market requires Airflow knowledge for €140k+ roles.
+
+**Decision:**
+```
+Phase 2 (Pi)    → Prefect  — lightweight, Python-first, ~120MB RAM
+Phase 3 (Cloud) → Airflow  — enterprise standard, Dutch market standard
+```
+
+Prefect used specifically to:
+- Learn orchestration concepts (flows, retries, scheduling)
+- Mirror Airflow mental model (Prefect flows ≈ Airflow DAGs)
+- Replace cron without overloading Pi
+
+**Rationale:**
+- Prefect runs efficiently on constrained hardware
+- Airflow required in 80-85% of Dutch Data/AI PM roles
+- Prefect → Airflow transition mirrors real-world edge → enterprise path
+- Modular functions already built are Prefect-task ready — no rewrite
+
+**Migration Path:**
+```
+Current cron job          → Prefect Flow
+read/validate/write funcs → Prefect Tasks
+cron schedule             → Prefect deployment schedule
+```
+
+**Consequences:**
+- Phase 2 Docker brings Prefect — replaces cron entirely
+- Phase 3 Airflow transition requires no code rewrite
+- Blocked by: Phase 2 Docker
+
+---
+
+## [ADR-017] KNMI Cron Frequency Increased to 10-Minute Intervals
+
+**Status:** Accepted / Implemented
+**Date:** 2026-03-09
+
+**Context:**
+Gold DQ threshold required knmi_reading_count >= 5 per hourly window.
+KNMI publishes 6 files per hour — one every 10 minutes, 2 stations each.
+Hourly cron captured only 1 file = 2 rows per hour.
+Result: All 1226 Gold rows flagged invalid with knmi_low_count.
+
+**Root Cause:**
+```
+KNMI publishes: :00, :10, :20, :30, :40, :50 (6 files/hour)
+Old cron:       :00 only (1 file/hour)
+Rows captured:  2 per hour (1 file × 2 stations)
+Rows expected:  12 per hour (6 files × 2 stations)
+```
+
+**Decision:**
+Increase cron frequency from hourly to every 10 minutes:
+```bash
+# Old
+0 * * * * cd /mnt/data/sentinel-pi && python3 src/ingest_data.py
+
+# New
+*/10 * * * * cd /mnt/data/sentinel-pi && python3 src/ingest_data.py
+```
+
+**Rationale:**
+- Fixes root cause — captures all 6 KNMI files per hour
+- 12 rows per hour satisfies updated DQ threshold
+- Platform purpose requires high granularity for ML correlation
+- Cron stability proven over 4 days — safe to increase frequency
+- Parquet predicate pushdown handles increased Bronze volume efficiently
+
+**Consequences:**
+- 6x more Bronze KNMI rows per hour
+- Zigbee collection also runs every 10 minutes — 6 collections per hour
+- Gold validity expected to restore as new data accumulates
+- Existing invalid Gold rows preserved as historical record of data gap
+- Risk: Pipeline runtime ~6 mins, cron interval 10 mins — monitor for overlap
+- Mitigation: Add cron lock mechanism (flock) — backlog item
+
+---
+
+## [ADR-018] Gold DQ Thresholds — Strict Governance at Aggregation Layer
+
+**Status:** Accepted / Implemented
+**Date:** 2026-03-09
+
+**Context:**
+Gold DQ thresholds were set during initial schema design before actual
+data volumes were known. After increasing cron to 10-minute intervals —
+expected readings per hourly Gold window changed significantly.
+
+**Previous Thresholds:**
+```
+knmi_reading_count   < 5  → invalid
+zigbee_reading_count < 2  → invalid
+```
+
+**Updated Thresholds:**
+```
+knmi_reading_count   < 10 → invalid  (83% of 12 expected)
+zigbee_reading_count < 45 → invalid  (94% of 48 expected)
+```
+
+**Rationale:**
+Stricter thresholds applied as data matures toward Gold layer.
+
+For Zigbee specifically:
+> "IoT devices are built for reliability. If they cannot meet the
+> threshold — identify the cause rather than forgive the gap."
+
+Bronze accepts everything.
+Silver validates ranges.
+Gold enforces strict completeness.
+
+Each layer applies tighter governance than the previous.
+This is the correct medallion architecture philosophy.
+
+**Calculation:**
+```
+KNMI:   12 expected/hour × 83% = 10 minimum
+Zigbee: 48 expected/hour × 94% = 45 minimum
+        (4 rooms × 2 records × 6 windows = 48)
+```
+
+**Consequences:**
+- Gold valid rows will increase as 10-minute data accumulates
+- High invalidity rate initially — expected, not a bug
+- DQ flags preserved for AI anomaly detection (future Phi3 analysis)
+- Thresholds reviewed again after 2 weeks of stable 10-minute data
+
+---
+
+## [ADR-019] Capability Framework for Sentinel-Pi Product Roadmap
+
+**Status:** Accepted
+**Date:** 2026-03-09
+
+**Context:**
+Platform was being described as a technical project. Career and arch
+coaches aligned on reframing as a product with capability layers —
+consistent with how AI/data product roadmaps are structured at
+enterprise scale.
+
+**Decision:**
+Adopt four-capability product framework:
+
+| Capability | User Outcome | Status |
+|------------|-------------|--------|
+| 1. Sensing | Reliable home measurements | ✅ Live — Phase 1 |
+| 2. Prediction | Forecast temp/air quality | 🔄 Phase 2-3 |
+| 3. Optimization | Auto energy savings | ⏳ Phase 3 |
+| 4. Explanation | Natural language insights | ⏳ Phase 4 |
+
+**Rationale:**
+- Product capability thinking is how TPM roles structure roadmaps
+- Each capability maps to a platform phase — traceable delivery
+- Hiring managers read capability roadmaps — not architecture diagrams
+- Sentinel-Pi story becomes: "I built Capability 1. Capability 2 is next."
+
+**Architecture Mapping:**
+```
+Capability 1 → Bronze + Silver + Gold (current)
+Capability 2 → ML models on Gold features
+Capability 3 → Decision engine + Home Assistant actuators
+Capability 4 → Phi3/Ollama + Streamlit dashboard
+```
+
+**Consequences:**
+- All future ADRs reference which capability they advance
+- Daily capability log maintained in docs/capability_log.md
+- LinkedIn and interview narrative structured around capabilities
+- Not just "I built a pipeline" — "I delivered Capability 1 sensing platform"

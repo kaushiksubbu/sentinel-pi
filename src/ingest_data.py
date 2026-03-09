@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 from transform_knmi_to_silver import transform_knmi_to_silver
 from transform_zigbee_to_silver import transform_zigbee_to_silver
+from transform_silver_to_gold import transform_silver_to_gold
 
 LOG_FILE = "/mnt/data/sentinel-pi/logs/cron.log"
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
@@ -122,6 +123,9 @@ def main():
     
     # 6. Transform Zigbee Bronze → Silver  ← ADD
     transform_zigbee_to_silver()
+
+    # 7. Transform Silver → Gold
+    transform_silver_to_gold()
 
 
 if __name__ == "__main__":
