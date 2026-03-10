@@ -127,6 +127,8 @@ def main():
     # 7. Transform Silver → Gold
     transform_silver_to_gold()
 
+    #8 - Log to close the run
+    logging.info("End of load cycle")
 
 if __name__ == "__main__":
     main()

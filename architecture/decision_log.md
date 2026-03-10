@@ -528,3 +528,208 @@ Capability 4 → Phi3/Ollama + Streamlit dashboard
 - Daily capability log maintained in docs/capability_log.md
 - LinkedIn and interview narrative structured around capabilities
 - Not just "I built a pipeline" — "I delivered Capability 1 sensing platform"
+
+
+## [ADR-020] Privacy & EU Compliance Strategy
+
+**Status:** Accepted — Backlog (Blocked by Phase 1 closure)
+**Date:** 2026-03-10
+
+**Context:**
+Dutch Data/AI PM roles require demonstrated understanding of GDPR,
+EU AI Act, and PII governance in production data platforms.
+Current Bronze data is weather + IoT sensors — zero PII risk today.
+GDPR-by-design narrative needed for interviews before implementation.
+
+**Decision:**
+Implement GDPR-by-design in two stages:
+
+Stage 1 — Immediate (narrative only):
+- Data classification documented per layer
+- GDPR principles mapped to architecture
+- No code changes required
+
+Stage 2 — Phase 2 implementation:
+- `pii_guard.py` — PII screening Bronze→Silver
+- Retention cleanup job (bronze_raw: 30 days)
+- data_classification column in Iceberg metadata
+
+**Data Classification (Implemented Now):**
+
+| Layer | Classification | Rationale |
+|-------|---------------|-----------|
+| bronze/ | INTERNAL | Raw sensor data, timestamps |
+| silver/ | INTERNAL | Validated, granular records |
+| gold/ | PUBLIC | Aggregated, anonymised |
+| ops/ | INTERNAL | Audit trail |
+| logs/ | INTERNAL | 30-day retention |
+
+**GDPR 7 Principles Mapping:**
+
+| Principle | Sentinel Implementation |
+|-----------|------------------------|
+| Lawfulness | Documented legal basis per table |
+| Purpose Limitation | Table-level purpose docs in ADR |
+| Data Minimisation | PII screening (Phase 2) |
+| Accuracy | Gold DQ thresholds enforced |
+| Storage Limitation | 30-day raw retention (Phase 2) |
+| Integrity | ACID writes + file permissions |
+| Accountability | ADRs + full pipeline logging |
+
+**Rationale:**
+- Current data has zero PII — implementation not urgent
+- Narrative ready for interviews immediately
+- Stage 2 implementation deferred to Phase 2 without risk
+
+**Interview Answer:**
+> "Sentinel implements GDPR-by-design — data classified as
+> INTERNAL/PUBLIC per layer, purpose documented in ADRs,
+> DQ thresholds enforce accuracy, full audit trail in ops.db.
+> PII screening and retention policies planned for Phase 2."
+
+**Consequences:**
+- pii_guard.py implementation → Phase 2 backlog
+- Data classification documented — zero overhead
+- Blocked by: Phase 1 closure
+
+---
+
+## [ADR-021] Percentage-Based DQ Completeness for Gold Layer
+
+**Status:** Accepted / Implemented
+**Date:** 2026-03-10
+
+**Context:**
+Gold DQ thresholds were hardcoded record counts:
+```
+knmi_reading_count   < 10 → invalid
+zigbee_reading_count < 45 → invalid
+```
+
+Problems identified:
+1. Brittle — every pipeline frequency change requires manual threshold update
+2. Not streaming-ready — record counts meaningless in continuous streams
+3. Assumes fixed expected counts — wrong assumption
+
+**Decision:**
+Replace hardcoded counts with runtime completeness percentage:
+
+```python
+knmi_completeness   = knmi_valid_count / knmi_total_count
+zigbee_completeness = zigbee_valid_count / zigbee_total_count
+
+if knmi_completeness < KNMI_COMPLETENESS_MIN:
+    flags.append("knmi_low_completeness")
+if zigbee_completeness < ZIGBEE_COMPLETENESS_MIN:
+    flags.append("zigbee_low_completeness")
+```
+
+Config thresholds (only constants needed):
+```python
+KNMI_COMPLETENESS_MIN   = 0.84  # 84% of hourly records valid
+ZIGBEE_COMPLETENESS_MIN = 0.94  # 94% of hourly records valid
+```
+
+**Rationale:**
+> "IoT devices are built for reliability. If they cannot meet
+> the threshold — identify the cause rather than forgive the gap."
+
+- Self-calibrating — adapts to any collection frequency
+- Streaming-ready — percentage works regardless of volume
+- No hardcoded expected counts — eliminates brittle assumptions
+- Only thresholds in config — one place to update
+
+**Consequences:**
+- Gold DQ valid rows: 1418 (100% valid) after implementation
+- Threshold review after 2 weeks stable data
+- Phase 3 streaming: time-based completeness windows replace percentage
+
+---
+
+## [ADR-022] Read-Only Connection Strategy for Non-Write Operations
+
+**Status:** Accepted / Implemented
+**Date:** 2026-03-10
+
+**Context:**
+DuckDB single-writer lock causes concurrency issues. At 10-minute cron
+intervals with ~6-minute pipeline runtime — only 4-minute safe query
+window per cycle. AI script and manual queries blocked during pipeline
+runs. Identified as real risk before AI log summarization deployment.
+
+**Decision:**
+Introduce `connect_to_db_readonly()` in `db_utils.py`:
+
+```python
+def connect_to_db_readonly(db_path: str):
+    """
+    Read-only connection — safe during pipeline runs.
+    Use for: AI scripts, manual queries, reporting.
+    Never use for: Bronze/Silver/Gold writes.
+    """
+    return duckdb.connect(db_path, read_only=True)
+```
+
+**Usage Rule:**
+```
+connect_to_db()          → pipeline writes only
+connect_to_db_readonly() → AI scripts, queries, reporting
+```
+
+**Rationale:**
+- Read-only connections do not block on write locks
+- AI script reads Gold only — minimal conflict window
+- Simple fix — no architecture changes required
+- Formal connection pooling deferred to Docker Phase 2
+
+**Consequences:**
+- All AI scripts must use `connect_to_db_readonly()`
+- scratch.py updated to use read-only connections
+- Docker Phase 2 supersedes with proper connection pooling
+- Added to `PI_INFRASTRUCTURE_CONSTRAINTS.md`
+
+---
+
+## [ADR-023] Gold Clean Slate Policy
+
+**Status:** Accepted / Implemented
+**Date:** 2026-03-10
+
+**Context:**
+Gold layer accumulated 1410 invalid rows due to incorrect processing
+logic — partial hour aggregation and hardcoded record count thresholds.
+Decision required: fix in place or rebuild clean.
+
+**Decision:**
+Drop and rebuild Gold when processing logic changes.
+
+> "Gold should always be clean — this was incorrect processing,
+> not bad data."
+
+**Rationale:**
+- Bad data → stays in Silver, flagged, never dropped
+- Incorrect processing → fix the logic, rebuild Gold clean
+- Gold is the analytics layer — ML and AI consume it directly
+- Corrupted Gold = corrupted model training
+
+**Rebuild Procedure:**
+```bash
+# 1. Drop Gold table
+con.execute('DROP TABLE IF EXISTS gold_weather')
+
+# 2. Reset Gold watermark
+con.execute("DELETE FROM watermarks WHERE source = 'gold_weather'")
+
+# 3. Recreate schema
+python3 src/create_silver_tables.py
+
+# 4. Fix processing logic
+
+# 5. Rerun pipeline — Gold rebuilds from Silver
+```
+
+**Consequences:**
+- Gold rebuild is safe — Silver always preserved
+- Historical gap documented in ADR — not hidden
+- Rebuild procedure documented for future use
+- Gold watermark reset required on every rebuild

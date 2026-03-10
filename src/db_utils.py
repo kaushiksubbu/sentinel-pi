@@ -180,3 +180,11 @@ def bulk_insert_ignore(
         "inserted":   inserted,
         "duplicates": duplicates,
     }
+
+def connect_to_db_readonly(db_path: str):
+    """
+    Read-only connection — safe for queries during pipeline runs.
+    Use for: AI scripts, manual queries, reporting.
+    Never use for: Bronze/Silver/Gold writes.
+    """
+    return duckdb.connect(db_path, read_only=True)

@@ -1,42 +1,89 @@
 # Sentinel-Pi — Backlog
 
-## Platform Observability
+## 🚫 WIP Gate
+Gold aggregation and AI log summarization must complete before any backlog item moves to WIP.
+**Gold: ✅ Complete. AI log summarization: 🔜 Tomorrow.**
+
+---
+
+## 🔴 High Priority
+
+### DevOps
+- [ ] Cron lock mechanism (flock) — pipeline runtime ~6 mins, interval 10 mins, overlap risk
+- [ ] venv health check cron job — silent failures before pipeline runs
+
+### Data Platform
+- [ ] AI log summarization — Phi3/Ollama daily report ← **NEXT SESSION**
+- [ ] pipeline_runs table in ops.db (observability + lineage)
+
+---
+
+## 🟡 Medium Priority
+
+### Platform Observability
 - [ ] Pipeline lineage tracking
 - [ ] Record level error handling (DLQ)
 - [ ] DuckDB savepoints investigation
+- [ ] DQ summary table in ops.db
 
-## Storage
-- [ ] Parquet migration
+### Storage
+- [ ] Parquet migration (Bronze → Parquet files)
+- [ ] Storage/Parquet audit post migration
 
-## DevOps
-- [ ] Docker Phase 2 — containerise read/validate/write modules
+### Data Platform
+- [ ] contracts.py — KNMI contract validation
+- [ ] Zigbee streaming gate criteria review
+- [ ] OKRs — Define platform OKRs for TPM positioning
+- [ ] Rename create_silver_tables.py → create_db_schemas.py
+
+### Privacy / Compliance
+- [ ] ADR-020 implementation — pii_guard.py Bronze→Silver
+- [ ] data_classification column to Iceberg metadata
+- [ ] Retention cleanup job (bronze_raw: 30 days)
+
+---
+
+## 🟢 Planned Phases
+
+### Phase 2 — Docker
+- [ ] Docker containerise read/validate/write modules
 - [ ] Docker Compose orchestration
+- [ ] Prefect — replace cron (ADR-016)
+- [ ] DLQ (Dead Letter Queue) for failures
+- [ ] Formal connection pooling strategy
+
+### Phase 3 — Enterprise
+- [ ] Iceberg migration — DuckDB tables → Parquet → Iceberg (ADR-015)
+- [ ] Airflow — enterprise orchestration transition (ADR-016)
 - [ ] Kubernetes conceptual + one toy deployment
 - [ ] Terraform mental model
+- [ ] Kafka/MQTT streaming ingestion
+- [ ] API gateway for real-time queries
+- [ ] Feature store serving ML
 
-## Data Platform
-- [ ] pipeline_runs table in ops.db (observability + lineage)
-- [ ] contracts.py — KNMI contract validation
-- [ ] ADR cleanup and numbering standardisation
-- [ ] Zigbee streaming gate criteria review
-- [ ] Storage/Parquet audit post migration
-- [ ] Iceberg migration (after Parquet — ADR-015)
-      Sequence: DuckDB tables → Parquet → Iceberg
-      Blocked by: Parquet migration
+---
 
-## Git / CI/CD
+## 🔵 Git / CI/CD
 - [ ] PR description for feature/knmi-silver-transform
 - [ ] Git branching strategy formalised
 - [ ] GitHub Actions CI/CD pipeline
+- [ ] Linting — flake8 or ruff added to pipeline
 
-## Blocked By Week 3 Closure
-Gold aggregation and AI log summarization must complete before any backlog item moves to WIP.
+---
 
-## Housekeeping
+## 📚 Learning Backlog
+- [ ] Docker orchestration concepts
+- [ ] Prefect flows and tasks
+- [ ] Airflow DAGs
+- [ ] Kubernetes pods, deployments, services
+- [ ] Terraform plan/apply/modules mental model
+- [ ] CTE deep dive — SQL pattern practice
+- [ ] Git branching — feature/dev/main strategy
+
+---
+
+## 🗂 Housekeeping
 - [ ] Rename create_silver_tables.py → create_db_schemas.py
-- [ ] venv health check cron job
-- [ ] PI_INFRASTRUCTURE_CONSTRAINTS.md commit to repo
-
-## Orchestration  
-- [ ] Prefect Phase 2 — replace cron (ADR-016)
-- [ ] Airflow Phase 3 — enterprise transition
+- [ ] ADR cleanup — standardise numbering and format
+- [ ] PI_INFRASTRUCTURE_CONSTRAINTS.md — committed ✅
+- [ ] scratch.py → always use connect_to_db_readonly()

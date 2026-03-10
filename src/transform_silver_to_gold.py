@@ -13,7 +13,7 @@ import duckdb
 import logging
 
 from db_utils import connect_to_db, close_db, create_table_with_ddl
-from config import SILVER_DB, GOLD_DB, OPS_DB
+from config import SILVER_DB, GOLD_DB, OPS_DB, KNMI_COMPLETENESS_MIN, ZIGBEE_COMPLETENESS_MIN
 
 CREATE_WATERMARKS = """
     CREATE TABLE IF NOT EXISTS watermarks (
@@ -67,33 +67,35 @@ def read_silver_for_gold(
     Single responsibility: fetch only.
     """
     knmi_rows = silver_con.execute("""
-        SELECT
-            DATE_TRUNC('hour', observed_at) AS window_start,
-            location                        AS outdoor_location,
-            AVG(temp)                       AS avg_outdoor_temp,
-            AVG(humidity)                   AS avg_outdoor_humidity,
-            AVG(wind_speed)                 AS avg_wind_speed,
-            COUNT(*)                        AS knmi_reading_count
-        FROM weather_silver
-        WHERE data_provider = 'knmi'
-        AND is_valid = TRUE
-        AND observed_at > ?
-        GROUP BY DATE_TRUNC('hour', observed_at), location
-    """, [watermark]).fetchall()
+            SELECT
+                DATE_TRUNC('hour', observed_at)          AS window_start,
+                location                                  AS outdoor_location,
+                AVG(temp)                                 AS avg_outdoor_temp,
+                AVG(humidity)                             AS avg_outdoor_humidity,
+                AVG(wind_speed)                           AS avg_wind_speed,
+                COUNT(*) FILTER (WHERE is_valid = TRUE)   AS knmi_valid_count,
+                COUNT(*)                                  AS knmi_total_count
+            FROM weather_silver
+            WHERE data_provider = 'knmi'
+            AND observed_at > ?
+            AND DATE_TRUNC('hour', observed_at) + INTERVAL '1 hour' < NOW()
+            GROUP BY DATE_TRUNC('hour', observed_at), location
+        """, [watermark]).fetchall()
 
     zigbee_rows = silver_con.execute("""
-        SELECT
-            DATE_TRUNC('hour', observed_at) AS window_start,
-            location                        AS indoor_location,
-            AVG(temp)                       AS avg_indoor_temp,
-            AVG(humidity)                   AS avg_indoor_humidity,
-            COUNT(*)                        AS zigbee_reading_count
-        FROM weather_silver
-        WHERE data_provider = 'zigbee'
-        AND is_valid = TRUE
-        AND observed_at > ?
-        GROUP BY DATE_TRUNC('hour', observed_at), location
-    """, [watermark]).fetchall()
+            SELECT
+                DATE_TRUNC('hour', observed_at)          AS window_start,
+                location                                  AS indoor_location,
+                AVG(temp)                                 AS avg_indoor_temp,
+                AVG(humidity)                             AS avg_indoor_humidity,
+                COUNT(*) FILTER (WHERE is_valid = TRUE)   AS zigbee_valid_count,
+                COUNT(*)                                  AS zigbee_total_count
+            FROM weather_silver
+            WHERE data_provider = 'zigbee'
+            AND observed_at > ?
+            AND DATE_TRUNC('hour', observed_at) + INTERVAL '1 hour' < NOW()
+            GROUP BY DATE_TRUNC('hour', observed_at), location
+            """, [watermark]).fetchall()
 
     logging.info(
         f"Gold | Read Silver | "
@@ -119,14 +121,14 @@ def aggregate_to_gold(
     for knmi in knmi_rows:
         window_start, outdoor_location, \
         avg_outdoor_temp, avg_outdoor_humidity, \
-        avg_wind_speed, knmi_reading_count = knmi
+        avg_wind_speed, knmi_valid_count, knmi_total_count = knmi
 
         window_end = window_start + timedelta(hours=1)
 
         for zigbee in zigbee_rows:
             z_window_start, indoor_location, \
             avg_indoor_temp, avg_indoor_humidity, \
-            zigbee_reading_count = zigbee
+            zigbee_valid_count, zigbee_total_count = zigbee
 
             # Only join matching hours
             if z_window_start != window_start:
@@ -134,10 +136,16 @@ def aggregate_to_gold(
 
             # DQ validation
             flags = []
-            if knmi_reading_count < 10:
-                flags.append("knmi_low_count")
-            if zigbee_reading_count < 45:
-                flags.append("zigbee_low_count")
+
+            knmi_completeness   = knmi_valid_count / knmi_total_count \
+                                if knmi_total_count > 0 else 0
+            zigbee_completeness = zigbee_valid_count / zigbee_total_count \
+                                if zigbee_total_count > 0 else 0
+
+            if knmi_completeness < KNMI_COMPLETENESS_MIN:
+                flags.append("knmi_low_completeness")
+            if zigbee_completeness < ZIGBEE_COMPLETENESS_MIN:
+                flags.append("zigbee_low_completeness")
 
             is_valid = len(flags) == 0
             dq_flag  = "|".join(flags) if flags else None
@@ -152,8 +160,8 @@ def aggregate_to_gold(
                 avg_wind_speed,         # avg_wind_speed
                 avg_indoor_temp,        # avg_indoor_temp
                 avg_indoor_humidity,    # avg_indoor_humidity
-                knmi_reading_count,     # knmi_reading_count
-                zigbee_reading_count,   # zigbee_reading_count
+                knmi_valid_count,       # knmi_valid_count
+                zigbee_valid_count,     # zigbee_valid_count
                 is_valid,               # is_valid       [index 11]
                 dq_flag,                # dq_flag        [index 12]
                 datetime.now(timezone.utc),  # processed_at  [index 13]
@@ -179,7 +187,7 @@ def write_gold(
          outdoor_location, indoor_location,
          avg_outdoor_temp, avg_outdoor_humidity, avg_wind_speed,
          avg_indoor_temp, avg_indoor_humidity,
-         knmi_reading_count, zigbee_reading_count,
+         knmi_valid_count, zigbee_valid_count,
          is_valid, dq_flag, processed_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, gold_rows)
