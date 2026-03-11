@@ -13,7 +13,7 @@ Gold aggregation and AI log summarization must complete before any backlog item 
 - [ ] venv health check cron job — silent failures before pipeline runs
 - [ ] Separate prod/dev directories — 
       BLOCKED: solved by Prefect Phase 2
-      
+
 ### Data Platform
 - [ ] AI log summarization — Phi3/Ollama daily report ← **NEXT SESSION**
 - [ ] pipeline_runs table in ops.db (observability + lineage)
@@ -53,6 +53,15 @@ Gold aggregation and AI log summarization must complete before any backlog item 
 - [ ] Prefect — replace cron (ADR-016)
 - [ ] DLQ (Dead Letter Queue) for failures
 - [ ] Formal connection pooling strategy
+### Phase 2 Tech Debt
+Task:   Migrate all logging to log_utils.log_event()
+Reason: Reduce logging debt, enable structured observability,
+        path to microservice adoption
+Scope:  ingest_data.py, load_knmi_to_bronze.py,
+        transform_knmi_to_silver.py,
+        transform_zigbee_to_silver.py,
+        transform_silver_to_gold.py
+Blocked by: Phase 1 closure
 
 ### Phase 3 — Enterprise
 - [ ] Iceberg migration — DuckDB tables → Parquet → Iceberg (ADR-015)

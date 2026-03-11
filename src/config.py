@@ -24,6 +24,7 @@ VENV_PYTHON   = "/mnt/data/sentinel-pi/.venv/bin/python3"
 COLLECT_ZIGBEE_SCRIPT = "/mnt/data/sentinel-pi/src/collect_zigbee_data.py"
 BRONZE_LANDING    = "/mnt/data/sentinel-pi/data/bronze/landing_zone"
 PROCESSED_DIR  = "/mnt/data/sentinel-pi/data/bronze/landing_zone/processed"
+REPORTS_DIR = "/mnt/data/sentinel-pi/docs/daily_reports"
 
 # Project paths
 PROJECT_DIR           = "/mnt/data/sentinel-pi"
@@ -43,3 +44,11 @@ KNMI_BASE_URL = (
     "/10-minute-in-situ-meteorological-observations"
     "/versions/1.0/files"
 )
+
+# Log file area
+LOG_FILE            = "/mnt/data/sentinel-pi/logs/cron.log"
+STRUCTURED_LOG_FILE = "/mnt/data/sentinel-pi/logs/pipeline.jsonl"
+
+# Ollama Config
+OLLAMA_URL   = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3.2:1b-instruct-q4_K_M"
