@@ -11,7 +11,9 @@ Gold aggregation and AI log summarization must complete before any backlog item 
 ### DevOps
 - [ ] Cron lock mechanism (flock) — pipeline runtime ~6 mins, interval 10 mins, overlap risk
 - [ ] venv health check cron job — silent failures before pipeline runs
-
+- [ ] Separate prod/dev directories — 
+      BLOCKED: solved by Prefect Phase 2
+      
 ### Data Platform
 - [ ] AI log summarization — Phi3/Ollama daily report ← **NEXT SESSION**
 - [ ] pipeline_runs table in ops.db (observability + lineage)
@@ -68,6 +70,7 @@ Gold aggregation and AI log summarization must complete before any backlog item 
 - [ ] Git branching strategy formalised
 - [ ] GitHub Actions CI/CD pipeline
 - [ ] Linting — flake8 or ruff added to pipeline
+- [ ] flake8 linting added to GitHub Actions pipeline
 
 ---
 
@@ -87,3 +90,11 @@ Gold aggregation and AI log summarization must complete before any backlog item 
 - [ ] ADR cleanup — standardise numbering and format
 - [ ] PI_INFRASTRUCTURE_CONSTRAINTS.md — committed ✅
 - [ ] scratch.py → always use connect_to_db_readonly()
+
+# Governance Documentation
+- [ ] docs/dpia_sentinel.md    — 30 mins, high value
+- [ ] docs/governance/ropa.md  — 30 mins, high value
+- [ ] docs/legal/privacy_notice.md — 15 mins
+- [ ] data_subject_api.py      — mock endpoints, Phase 2
+- [ ] breach_detector.py       — Phase 2
+Priority: After Phase 1 closure

@@ -12,7 +12,7 @@ from db_utils import (
     create_table_with_ddl,
     bulk_insert_ignore,
 )
-from config import BRONZE_DB, LANDING_DIR, PROCESSED_DIR, STATIONS
+from config import BRONZE_DB, BRONZE_LANDING, PROCESSED_DIR, STATIONS
 # ── Constants ──────────────────────────────────────────────────────
 TABLE_NAME     = "knmi_raw"
 # ── Schema ─────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ def load_knmi_files_to_bronze():
     Write pattern: single external connection for bulk insert.
     """
     os.makedirs(PROCESSED_DIR, exist_ok=True)
-    files = get_unprocessed_files(LANDING_DIR)
+    files = get_unprocessed_files(BRONZE_LANDING)
 
     if not files:
         logging.info("KNMI Bronze: No unprocessed files found.")

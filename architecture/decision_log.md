@@ -347,6 +347,24 @@ Phase 3 → Iceberg migration (this ADR)
 - No schema changes required between phases
 - Blocked by: Phase 1 closure + Parquet migration
 
+**Corrected Implementation Sequence:**
+
+-- Step 1: Export DuckDB → Parquet
+COPY (SELECT * FROM knmi_raw) 
+TO 'bronze/knmi_20260311.parquet';
+
+COPY (SELECT * FROM zigbee_raw) 
+TO 'bronze/zigbee_20260311.parquet';
+
+-- Step 2: Create Iceberg from Parquet
+CREATE TABLE iceberg_data.bronze_knmi
+USING iceberg
+LOCATION '/mnt/data/sentinel-pi/data/iceberg/bronze_knmi'
+FROM read_parquet('bronze/knmi_*.parquet');
+
+-- Step 3: Future writes → Iceberg directly
+INSERT INTO iceberg_data.bronze_knmi VALUES (...);
+
 ---
 
 ## [ADR-016] Orchestrator Selection Strategy
@@ -733,3 +751,49 @@ python3 src/create_silver_tables.py
 - Historical gap documented in ADR — not hidden
 - Rebuild procedure documented for future use
 - Gold watermark reset required on every rebuild
+
+## [ADR-024] Observability and Platform Metrics Strategy
+
+**Status:** Accepted — Partially Implemented
+**Date:** 2026-03-11
+
+**Context:**
+Pipeline runs every 10 minutes. Silent failures, degraded 
+data quality, and sensor dropouts are not visible without 
+structured observability. Current logging captures 
+per-run summaries but no cross-run trend analysis.
+
+**Decision:**
+Track operational metrics per pipeline run:
+
+| Metric | Source | Purpose |
+|--------|--------|---------|
+| pipeline_runtime | logs | Detect slowdowns |
+| dq_valid_percentage | ops.db | Quality trends |
+| rows_ingested | ops.db | Volume anomalies |
+| cron_delay | logs | Scheduling drift |
+| sensor_coverage | Silver | Room dropout detection |
+
+Expose metrics through three channels:
+1. AI summaries — Phi3 daily log report (Phase 1)
+2. Log analysis — structured cron.log (current)
+3. Dashboard — Streamlit (Phase 4)
+
+**Rationale:**
+- Observability ensures reliability of Capability 1 — Sensing
+- Early detection of platform degradation before Gold is affected
+- pipeline_runs table in ops.db is the foundation
+- AI summary is the first consumer of these metrics
+
+**Implementation Phases:**
+```
+Phase 1 → AI log summarization reads cron.log ← tomorrow
+Phase 2 → pipeline_runs table populated per run
+Phase 3 → Prefect built-in observability
+Phase 4 → Streamlit dashboard
+```
+
+**Consequences:**
+- pipeline_runs table moves up backlog priority
+- AI summary must include DQ percentage and row counts
+- Sensor coverage metric requires Silver query per run
