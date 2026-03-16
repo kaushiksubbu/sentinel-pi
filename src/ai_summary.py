@@ -35,7 +35,7 @@ def read_recent_logs(hours: int = 24) -> str:
     # Filter by timestamp prefix
     cutoff_str = cutoff.strftime('%Y-%m-%d %H')
     filtered = [line for line in lines if line[:13] >= cutoff_str]
-    return "\n".join(filtered[-10:])
+    return "\n".join(filtered[-20:])
 
 
 def read_gold_metrics() -> dict:
@@ -83,21 +83,23 @@ def read_gold_metrics() -> dict:
 
 
 def build_prompt(logs: str, metrics: dict) -> str:
-    """Build Phi3 prompt from logs and metrics."""
-    return f"""You are a data platform operations assistant for Sentinel-Pi,
-a home IoT data platform running on a Raspberry Pi.
+    """Build Llama3.2:1b prompt from logs and metrics."""
+    return f"""You are an AI assistant for Sentinel-Pi,
+a governed IoT data lakehouse platform for home environment intelligence.
+Your role is to generate a concise daily operations report
+for the Technical Data Product Manager overseeing the platform.
 
 Today's Gold layer metrics:
 {json.dumps(metrics, indent=2, default=str)}
 
-Recent pipeline logs (last 24 hours):
+Recent pipeline logs:
 {logs}
 
 Write a concise daily operations report in markdown covering:
-1. Pipeline Health — how many runs completed, any failures or skipped runs
-2. Data Quality — valid percentage, any DQ flags observed
-3. Performance — any patterns in timing or slowness
-4. Sensor Coverage — which locations reported data
+1. Pipeline Health — runs completed, failures, skipped runs
+2. Data Quality — valid percentage, DQ flags observed
+3. Performance — timing patterns, slowness
+4. Sensor Coverage — locations reporting data
 5. Anomalies — anything unusual worth investigating
 6. Recommendation — one actionable suggestion for tomorrow
 
