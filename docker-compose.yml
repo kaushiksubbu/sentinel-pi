@@ -7,11 +7,11 @@ services:
       context: .
       dockerfile: docker/land-bronze.Dockerfile
     volumes:
-      - /mnt/data/sentinel-pi/src:/app/src
-      - /mnt/data/sentinel-pi/data:/app/data
-      - /mnt/data/sentinel-pi/logs:/app/logs
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/mnt/data/sentinel-pi
     networks:
       - sentinel-net
 
@@ -20,11 +20,11 @@ services:
       context: .
       dockerfile: docker/transform-silver.Dockerfile
     volumes:
-      - /mnt/data/sentinel-pi/src:/app/src
-      - /mnt/data/sentinel-pi/data:/app/data
-      - /mnt/data/sentinel-pi/logs:/app/logs
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/mnt/data/sentinel-pi
     depends_on:
       - land-bronze
     networks:
@@ -35,11 +35,11 @@ services:
       context: .
       dockerfile: docker/transform-gold.Dockerfile
     volumes:
-      - /mnt/data/sentinel-pi/src:/app/src
-      - /mnt/data/sentinel-pi/data:/app/data
-      - /mnt/data/sentinel-pi/logs:/app/logs
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/mnt/data/sentinel-pi
     depends_on:
       - transform-silver
     networks:
@@ -50,11 +50,11 @@ services:
       context: .
       dockerfile: docker/transform-gold.Dockerfile
     volumes:
-      - /mnt/data/sentinel-pi/src:/app/src
-      - /mnt/data/sentinel-pi/data:/app/data
-      - /mnt/data/sentinel-pi/logs:/app/logs
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/mnt/data/sentinel-pi
     depends_on:
       - transform-silver
     networks:
@@ -65,12 +65,68 @@ services:
       context: .
       dockerfile: docker/ai-summary.Dockerfile
     volumes:
-      - /mnt/data/sentinel-pi/src:/app/src
-      - /mnt/data/sentinel-pi/data:/app/data
-      - /mnt/data/sentinel-pi/logs:/app/logs
-      - /mnt/data/sentinel-pi/docs:/app/docs
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+      - /mnt/data/sent
+version: "3.8"
+
+services:
+
+  land-bronze:
+    build:
+      context: .
+      dockerfile: docker/land-bronze.Dockerfile
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/mnt/data/sentinel-pi
+    networks:
+      - sentinel-net
+
+  transform-silver:
+    build:
+      context: .
+      dockerfile: docker/transform-silver.Dockerfile
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+    environment:
+      - PYTHONPATH=/mnt/data/sentinel-pi
+    depends_on:
+      - land-bronze
+    networks:
+      - sentinel-net
+
+  transform-gold:
+    build:
+      context: .
+      dockerfile: docker/transform-gold.Dockerfile
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+    environment:
+      - PYTHONPATH=/mnt/data/sentinel-pi
+    depends_on:
+      - transform-silver
+    networks:
+      - sentinel-net
+
+  ai-summary:
+    build:
+      context: .
+      dockerfile: docker/ai-summary.Dockerfile
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+      - /mnt/data/sentinel-pi/docs:/mnt/data/sentinel-pi/docs
+    environment:
+      - PYTHONPATH=/mnt/data/sentinel-pi
     depends_on:
       - transform-gold
     networks:
