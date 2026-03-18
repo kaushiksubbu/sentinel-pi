@@ -50,5 +50,9 @@ LOG_FILE            = "/mnt/data/sentinel-pi/logs/cron.log"
 STRUCTURED_LOG_FILE = "/mnt/data/sentinel-pi/logs/pipeline.jsonl"
 
 # Ollama Config
-OLLAMA_URL   = "http://host.docker.internal:11434/api/generate"
+import os
+OLLAMA_URL = os.getenv(
+    "OLLAMA_URL",
+    "http://localhost:11434/api/generate"
+)
 OLLAMA_MODEL = "llama3.2:1b-instruct-q4_K_M"
