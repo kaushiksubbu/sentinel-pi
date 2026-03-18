@@ -58,7 +58,15 @@
 - [ ] Rename create_silver_tables.py → create_db_schemas.py
 - [ ] Automate daily log creation — cron 0 7 * * *
 - [ ] PR description for feature/govern-1-docker
-
+- [ ] Restructure src/ to reflect processing stages
+      Current: flat src/ folder
+      Target:  src/ingestion/    → land-bronze scripts
+               src/transforms/   → silver + gold scripts
+               src/pipeline/     → pipeline_flow.py ✅ already done
+               src/ai/           → ai_summary.py
+               src/utils/        → config.py, db_utils.py,
+                                   contracts.py, log_utils.py
+      Priority: Low — do during Phase 2 cleanup
 ### Career
 - [ ] CV rewrite — all 6 roles
 - [ ] LinkedIn headline + About section
