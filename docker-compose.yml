@@ -6,6 +6,7 @@ services:
     build:
       context: .
       dockerfile: docker/land-bronze.Dockerfile
+    user: "1000:1000"
     volumes:
       - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
       - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
@@ -19,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: docker/transform-silver.Dockerfile
+    user: "1000:1000"
     volumes:
       - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
       - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
@@ -34,6 +36,7 @@ services:
     build:
       context: .
       dockerfile: docker/transform-gold.Dockerfile
+    user: "1000:1000"
     volumes:
       - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
       - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
@@ -49,6 +52,7 @@ services:
     build:
       context: .
       dockerfile: docker/ai-summary.Dockerfile
+    user: "1000:1000"
     volumes:
       - /mnt/data/sentinel-pi/src:/app/src
       - /mnt/data/sentinel-pi/data:/app/data
