@@ -130,6 +130,13 @@
 - [ ] Pipeline lineage tracking
 - [ ] Record level error handling (DLQ)
 
+
+### Govern.2
+- [ ] Modularise pipeline_flow.py → 4 Docker tasks
+      Each @task runs its Docker container
+      Prefect orchestrates containers not Python functions
+      Closes the Docker + Prefect integration properly
+Priority: Govern.2 Week 3
 ---
 
 ## 🟢 Phase 3 — Scale

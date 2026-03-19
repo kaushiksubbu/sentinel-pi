@@ -24,3 +24,6 @@ models/src/scratch.py
 
 #Scratch test files
 src/scratch.py
+
+# lock files
+locks/
