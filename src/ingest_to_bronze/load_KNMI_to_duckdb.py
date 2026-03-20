@@ -2,6 +2,9 @@
 import db_utils
 import logging
 from datetime import datetime
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
 
 def save_weather_to_duckdb(db_path: str, table: str, data: dict, station_id: int):
     """

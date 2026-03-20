@@ -13,6 +13,9 @@ from db_utils import (
     bulk_insert_ignore,
 )
 from config import BRONZE_DB, BRONZE_LANDING, PROCESSED_DIR, STATIONS
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+
 # ── Constants ──────────────────────────────────────────────────────
 TABLE_NAME     = "knmi_raw"
 # ── Schema ─────────────────────────────────────────────────────────

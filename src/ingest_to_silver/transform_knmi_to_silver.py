@@ -5,6 +5,9 @@ from db_utils import connect_to_db, close_db, create_table_with_ddl
 from config import BRONZE_DB, SILVER_DB, OPS_DB
 import logging
 import duckdb
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
 
 CREATE_WATERMARKS = """
     CREATE TABLE IF NOT EXISTS watermarks (

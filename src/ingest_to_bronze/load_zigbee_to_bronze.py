@@ -1,10 +1,20 @@
-# load_zigbee_to_duckdb.py
+# load_zigbee_to_bronze.py
+
 import os
 import json
 import glob
 from datetime import datetime
 import db_utils
 import logging
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+from config import BRONZE_DB, BRONZE_ZIGBEE_TBL, BRONZE_LANDING
+from db_utils import (
+    connect_to_db,
+    close_db,
+    create_table_with_ddl,
+    bulk_insert_ignore,
+)
 
 def read_zigbee_jsons(landing_dir: str) -> list:
     """
@@ -109,7 +119,6 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
 
         db_utils.create_table_if_not_exists(con, table, inferred_schema)
         db_utils.upsert_or_append(con, table, rows)
-        con.close()
         
         logging.info(f"Loaded {len(rows)} Zigbee records")
         
@@ -133,3 +142,14 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
         import traceback
         logging.error(f"  Traceback: {traceback.format_exc()}")
         logging.info("=== ZIGBEE_LOAD_FAILED ===")
+    finally:
+        close_db(con)
+
+if __name__ == "__main__":
+    logging.info(
+        "Loading Zigbee data from Bronze JSONs → Bronze DuckDB table...")
+    load_zigbee_to_duckdb(
+        db_path=BRONZE_DB,
+        table=BRONZE_ZIGBEE_TBL,
+        landing_dir=BRONZE_LANDING,
+    )

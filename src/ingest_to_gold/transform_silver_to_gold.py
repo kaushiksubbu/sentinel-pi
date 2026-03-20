@@ -11,6 +11,9 @@
 from datetime import datetime, timezone, timedelta
 import duckdb
 import logging
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
 
 from db_utils import connect_to_db, close_db, create_table_with_ddl
 from config import SILVER_DB, GOLD_DB, OPS_DB, KNMI_COMPLETENESS_MIN, ZIGBEE_COMPLETENESS_MIN

@@ -10,6 +10,9 @@ import os
 import json
 import requests
 from datetime import datetime, timezone, timedelta
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+
 
 from config import (
     GOLD_DB,

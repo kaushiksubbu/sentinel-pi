@@ -25,7 +25,7 @@ ollama/
 models/src/scratch.py
 
 #Scratch test files
-src/scratch.py
+src/temp_and_scratch/*
 
 # lock files
 locks/

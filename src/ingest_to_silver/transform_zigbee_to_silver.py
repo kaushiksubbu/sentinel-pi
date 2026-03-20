@@ -7,6 +7,10 @@ import logging
 import duckdb
 import json
 
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+
 from contracts import ZIGBEE_CONTRACT
 
 def extract_by_contract(data: dict, concept: str) -> float:

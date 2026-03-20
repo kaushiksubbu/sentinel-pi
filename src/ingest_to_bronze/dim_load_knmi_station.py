@@ -1,4 +1,7 @@
 import duckdb
+import os
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
 
 # Config - Using the separate Sentinel DB for master data
 DB_PATH = 'data/sentinel_pi.db'
