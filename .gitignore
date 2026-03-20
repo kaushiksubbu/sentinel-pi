@@ -15,8 +15,10 @@ logs/*.log
 logs/
 
 # Python
-__pycache__/
+**/__pycache__/
 *.pyc
+*.pyo
+
 
 # Large binaries/models
 ollama/

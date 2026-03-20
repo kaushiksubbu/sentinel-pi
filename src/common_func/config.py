@@ -21,7 +21,7 @@ LOCK_META  = "/mnt/data/sentinel-pi/locks/etl_lock_meta.json"
 # --- Paths ---
 PROJECT_DIR   = "/mnt/data/sentinel-pi"
 VENV_PYTHON   = "/mnt/data/sentinel-pi/.venv/bin/python3"
-COLLECT_ZIGBEE_SCRIPT = "/mnt/data/sentinel-pi/src/collect_zigbee_data.py"
+COLLECT_ZIGBEE_SCRIPT = "/mnt/data/sentinel-pi/src/collect_data/collect_zigbee_files.py"
 BRONZE_LANDING    = "/mnt/data/sentinel-pi/data/bronze/landing_zone"
 PROCESSED_DIR  = "/mnt/data/sentinel-pi/data/bronze/landing_zone/processed"
 REPORTS_DIR = "/mnt/data/sentinel-pi/docs/daily_reports"
