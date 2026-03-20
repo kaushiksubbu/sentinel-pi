@@ -8,7 +8,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
 
 from config import (
     PROJECT_DIR,
-    VENV_PYTHON,
     COLLECT_ZIGBEE_SCRIPT,
 )
 
@@ -20,7 +19,7 @@ def collect_zigbee():
     logging.info("Starting Zigbee data collection (Bronze)...")
     try:
         result = subprocess.run(
-            [VENV_PYTHON, COLLECT_ZIGBEE_SCRIPT],
+            [sys.executable, COLLECT_ZIGBEE_SCRIPT],
             cwd=PROJECT_DIR,
             capture_output=True,
             text=True,

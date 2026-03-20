@@ -2,33 +2,101 @@ version: "3.8"
 
 services:
 
-  land-bronze:
+  collect-knmi:
     build:
       context: .
-      dockerfile: docker/land-bronze.Dockerfile
+      dockerfile: docker/collect-knmi.Dockerfile
     user: "1000:1000"
     volumes:
       - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
       - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
       - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/mnt/data/sentinel-pi
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/collect_data
     networks:
       - sentinel-net
 
-  transform-silver:
+  collect-zigbee:
     build:
       context: .
-      dockerfile: docker/transform-silver.Dockerfile
+      dockerfile: docker/collect-zigbee.Dockerfile
     user: "1000:1000"
     volumes:
       - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
       - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
       - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/mnt/data/sentinel-pi
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/collect_data
+    networks:
+      - sentinel-net
+
+  load-knmi-bronze:
+    build:
+      context: .
+      dockerfile: docker/load-knmi-bronze.Dockerfile
+    user: "1000:1000"
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+    environment:
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/ingest_to_bronze
     depends_on:
-      - land-bronze
+      - collect-knmi
+    networks:
+      - sentinel-net
+
+  load-zigbee-bronze:
+    build:
+      context: .
+      dockerfile: docker/load-zigbee-bronze.Dockerfile
+    user: "1000:1000"
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+    environment:
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/ingest_to_bronze
+    depends_on:
+      - collect-zigbee
+    networks:
+      - sentinel-net
+
+  transform-knmi-silver:
+    build:
+      context: .
+      dockerfile: docker/transform-knmi-silver.Dockerfile
+    user: "1000:1000"
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+    environment:
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/ingest_to_silver
+    depends_on:
+      - load-knmi-bronze
+    networks:
+      - sentinel-net
+
+  transform-zigbee-silver:
+    build:
+      context: .
+      dockerfile: docker/transform-zigbee-silver.Dockerfile
+    user: "1000:1000"
+    volumes:
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+    environment:
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/ingest_to_silver
+    depends_on:
+      - load-zigbee-bronze
     networks:
       - sentinel-net
 
@@ -42,9 +110,11 @@ services:
       - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
       - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
     environment:
-      - PYTHONPATH=/mnt/data/sentinel-pi
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/ingest_to_gold
     depends_on:
-      - transform-silver
+      - transform-knmi-silver
+      - transform-zigbee-silver
     networks:
       - sentinel-net
 
@@ -54,18 +124,20 @@ services:
       dockerfile: docker/ai-summary.Dockerfile
     user: "1000:1000"
     volumes:
-      - /mnt/data/sentinel-pi/src:/app/src
-      - /mnt/data/sentinel-pi/data:/app/data
-      - /mnt/data/sentinel-pi/logs:/app/logs
-      - /mnt/data/sentinel-pi/docs:/app/docs
+      - /mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src
+      - /mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data
+      - /mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs
+      - /mnt/data/sentinel-pi/docs:/mnt/data/sentinel-pi/docs
     environment:
-      - PYTHONPATH=/app
+      - TZ=Europe/Amsterdam
+      - PYTHONPATH=/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src/common_func:/mnt/data/sentinel-pi/src/analytics
       - OLLAMA_URL=http://host.docker.internal:11434/api/generate
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - transform-gold
     networks:
       - sentinel-net
-
 
 networks:
   sentinel-net:

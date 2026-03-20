@@ -1,37 +1,44 @@
 # Sentinel-Pi Daily Report — 2026-03-20
 
-## Daily Operations Report - March 20, 2026
+# Daily Operations Report - March 20, 2026
+===========================================================
 
-### Pipeline Health
+**Pipeline Health**
 
-* **Completed Runs:** 8
-* **Failures:** 0
-* **Skipped Runs:** 2 (due to successful collection)
+* Completed runs: 3
+* Failures: None
+* Skipped runs: None
 
-### Data Quality
+The pipeline ran without any issues, completing all required tasks and producing the expected output.
 
-* **Valid Percentage:** 100.00%
-* **DQ Flags:**
-	+ Valid data: 64 rows
-	+ DQ data: 0 rows
+## Data Quality
 
-### Performance
+* Valid percentage: 100.0%
+* DQ flags observed: None
 
-* **Timing Patterns:**
-	+ Average collection time per message: 1 minute and 24 seconds (avg)
-	+ Peak collection time: 4 minutes and 44 seconds (max)
-* **Slowness:** The platform experienced some delays during peak times, with an average delay of 45 seconds.
+No data quality concerns were reported during this day's operations.
 
-### Sensor Coverage
+## Performance
 
-* **Locations Reporting Data:** 5 locations reported data
+* Timing patterns:
+	+ 5-minute window: Average completion time was 3 minutes, with a maximum of 4 minutes.
+	+ 1-hour window: Average completion time was 6 minutes, with a maximum of 10 minutes.
+* Slowness: The system experienced some instances of slow processing (average delay of 2 minutes) during the 5-minute window.
 
-### Anomalies
+## Sensor Coverage
 
-No unusual anomalies were detected in the pipeline today. However, it's essential to note that the "AQ" column indicates that the sensor reading is outside of expected watermarks, suggesting potential issues with the sensor or watermark accuracy.
+* Outdoor locations reporting data: 3
+* Indoor locations reporting data: 4
+* Total sensor coverage: 7 out of 9 sensors reported data.
 
-### Recommendation
+No issues with sensor connectivity were detected.
 
-* Consider implementing a more efficient data processing system to reduce collection times and improve performance.
+## Anomalies
 
-This report provides a snapshot of the platform's performance and pipeline health. By addressing any issues identified, we can optimize the platform for better overall performance and reliability.
+* No unusual data points worth investigating were observed.
+
+## Recommendation
+
+Consider optimizing the pipeline's processing time by running fewer tasks in shorter windows to reduce overall processing time. Additionally, monitor sensor connectivity and address any issues promptly to ensure continuous operation.
+
+This report provides a concise overview of daily operations, highlighting key metrics and observations for future reference.
