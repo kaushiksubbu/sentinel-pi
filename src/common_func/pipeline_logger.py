@@ -15,8 +15,7 @@ def write_jsonl_entry(stage: str,
                       dq_failed_reason: str = None,
                       error: str = None):
     try:
-        from prefect.runtime import flow_run
-        run_name = flow_run.name
+        run_name = os.getenv("PREFECT_RUN_NAME", None)
     except Exception:
         run_name = None
 

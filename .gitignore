@@ -28,4 +28,8 @@ models/src/scratch.py
 src/temp_and_scratch/*
 
 # lock files
-locks/
+locks/prefect.db
+prefect.db-shm
+prefect.db-wal
+prefect.db
+

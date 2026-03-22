@@ -114,6 +114,10 @@ def call_llama3_2_1b(prompt: str) -> str:
                 "model": OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": False,
+                "options": {
+                            "num_predict": 300,   # hard cap on output tokens
+                            "temperature": 0.1    # less creative = faster = more factual
+                            }
             },
             timeout=300,
         )

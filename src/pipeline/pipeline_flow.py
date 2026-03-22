@@ -17,6 +17,7 @@ def docker_run(image: str, extra_flags: list = []):
         "-v", "/mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data",
         "-v", "/mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs",
         "-e", "TZ=Europe/Amsterdam",
+        "-e", f"PREFECT_RUN_NAME={flow_run.name}",  
         "--env-file", "/mnt/data/sentinel-pi/.env",
     ] + extra_flags + [image]
 
@@ -107,7 +108,7 @@ def sentinel_pipeline():
     transform_knmi_silver()
     transform_zigbee_silver()
     transform_gold()
-    ai_summary()
+    ai_summary() # need to check if running now for every 10 mins is creating locks. 
 
 
 if __name__ == "__main__":
