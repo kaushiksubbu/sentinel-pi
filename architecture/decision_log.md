@@ -498,3 +498,35 @@ SQL → exact metric retrieval
 ADR-036 → Weather extremes prediction (Phase 3)
 ADR-037 → Streamlit dashboard architecture (Phase 4)
 ```
+
+ADR-038 — Pipeline Telemetry Schema Contract
+Status: Accepted / Implemented
+Date: 2026-03-22
+Context: Pipeline stages need structured metrics for AI summary consumption. Generic fields like records_in/records_out caused ambiguity — gold layer produces more rows than it consumes by design (cartesian join), which would trigger false LLM anomalies.
+Decision: Per-stage TypedDict schemas defined in metrics_contract.py. Each stage imports its own contract. Logger accepts metrics: dict — schema enforced at call site.
+Rationale: Schema drift caught at code review not runtime. LLM receives unambiguous named fields per stage. Separates telemetry contracts from source field contracts in contract.py.
+Consequences: Zero schema drift across 8 pipeline stages. Enterprise evolution path: TypedDict → versioned package → DataHub/Atlan registry.
+
+ADR-039 — LLM Prompt Encodes Relationships Not Values
+Status: Accepted / Implemented
+Date: 2026-03-22
+Context: Early prompt design hardcoded expected gold_rows = 8. Adding a third KNMI station would silently break the prompt without any code change — a hidden contract violation.
+Decision: Prompts encode relationship rules not expected values. Rule: gold_rows_written MUST equal knmi_rows_in × zigbee_rows_in. Values come from JSONL at runtime.
+Rationale: Prompt remains valid regardless of sensor count changes. LLM detects anomalies by applying the rule to actual data — not by comparing against hardcoded expectations.
+Consequences: Zero hardcoded expectations in prompts. Generalises to any pipeline topology change automatically.
+
+ADR-040 — Bronze Raw-As-Is Principle
+Status: Accepted / Implemented
+Date: 2026-03-22
+Context: KNMI API returns data for multiple stations in one file. Question arose whether to filter by station at collection or bronze load time.
+Decision: Bronze accepts raw data exactly as received from source. No filtering, no transformation, no validation at bronze layer. Station filtering belongs in Silver only.
+Rationale: Bronze is a faithful landing zone. Its job is faithfulness to source not cleanliness. Silver owns all transformation logic. Keeps medallion layer responsibilities clean and non-overlapping.
+Consequences: Bronze is always replayable from source. Any reprocessing logic change requires only Silver changes — Bronze is never touched.
+
+ADR-041 — Structured Logging Replaces cron.log
+Status: Accepted / Implemented
+Date: 2026-03-22
+Context: Phase 1 AI summary hallucinations traced to unstructured cron.log input — verbose, noisy, 10-20 lines unparseable by a 1B parameter model. Root cause was input quality not model capability.
+Decision: pipeline.jsonl replaces cron.log as primary pipeline observability artifact. One JSON line per stage per run. JSONL_RUNS_TO_READ=5, JSONL_LINES_PER_RUN=8 — reads last 40 lines (~10KB).
+Rationale: AI summary has ground truth metrics. Hallucination root cause eliminated at source. JSONL is append-only, lightweight (~250 bytes/line), and trivially queryable. cron.log deprecated — removal in Govern.2.
+Consequences: Zero AI hallucinations from logging input. Structured observability enables future Soda Core and OpenLineage integration in Govern.2.
