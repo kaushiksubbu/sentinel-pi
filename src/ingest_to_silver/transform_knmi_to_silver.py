@@ -1,5 +1,7 @@
 # transform_knmi_to_silver.py
 
+from metrics_contract import SilverMetrics
+from pipeline_logger import write_jsonl_entry
 from datetime import datetime, timezone
 from db_utils import connect_to_db, close_db, create_table_with_ddl
 from config import BRONZE_DB, SILVER_DB, OPS_DB
@@ -7,7 +9,9 @@ import logging
 import duckdb
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
+
 
 CREATE_WATERMARKS = """
     CREATE TABLE IF NOT EXISTS watermarks (
@@ -17,6 +21,7 @@ CREATE_WATERMARKS = """
         PRIMARY KEY (source)
     )
 """
+
 
 def get_watermark(ops_con, source: str) -> datetime:
     """
@@ -28,7 +33,7 @@ def get_watermark(ops_con, source: str) -> datetime:
         FROM watermarks 
         WHERE source = ?
     """, [source]).fetchone()
-    
+
     if result is None:
         return datetime(1, 1, 1)  # 0001-01-01
     return result[0]
@@ -63,6 +68,7 @@ def validate_knmi_row(ta: float, rh: float) -> tuple[bool, str]:
     dq_flag = "|".join(flags) if flags else None
     return is_valid, dq_flag
 
+
 def read_knmi_bronze(
     bronze_con: duckdb.DuckDBPyConnection,
     watermark: datetime,
@@ -85,6 +91,7 @@ def read_knmi_bronze(
         WHERE observed_at > ?
         ORDER BY observed_at ASC
     """, [watermark]).fetchall()
+
 
 def write_knmi_silver(
     silver_con: duckdb.DuckDBPyConnection,
@@ -110,7 +117,7 @@ def write_knmi_silver(
     max_observed_at = max(row[0] for row in bronze_rows)
     update_watermark(ops_con, 'knmi', max_observed_at)
 
-    valid_count   = sum(1 for row in silver_rows if row[6] is True)
+    valid_count = sum(1 for row in silver_rows if row[6] is True)
     invalid_count = sum(1 for row in silver_rows if row[6] is False)
 
     return {
@@ -119,6 +126,7 @@ def write_knmi_silver(
         "invalid":   invalid_count,
         "watermark": max_observed_at,
     }
+
 
 def validate_knmi_rows(
     bronze_rows: list[tuple],
@@ -147,25 +155,27 @@ def validate_knmi_rows(
         ))
     return silver_rows
 
+
 def transform_knmi_to_silver():
     """
     Orchestrates Bronze → Silver transformation.
     Reads → Validates → Writes.
     Each step independently responsible.
     """
+    start_time = datetime.now(timezone.utc)
     bronze_con = None
     silver_con = None
-    ops_con    = None
+    ops_con = None
 
     try:
         bronze_con = connect_to_db(BRONZE_DB)
         silver_con = connect_to_db(SILVER_DB)
-        ops_con    = connect_to_db(OPS_DB)
+        ops_con = connect_to_db(OPS_DB)
 
         create_table_with_ddl(ops_con, CREATE_WATERMARKS)
 
         # Step 1 — Read
-        watermark   = get_watermark(ops_con, 'knmi')
+        watermark = get_watermark(ops_con, 'knmi')
         bronze_rows = read_knmi_bronze(bronze_con, watermark)
 
         if not bronze_rows:
@@ -187,15 +197,35 @@ def transform_knmi_to_silver():
             f"Invalid: {result['invalid']} | "
             f"Watermark: {result['watermark']}"
         )
+        write_jsonl_entry(
+            stage="transform_knmi_silver",
+            status="success",
+            start_time=start_time,
+            metrics=SilverMetrics(
+                records_in=result['total'],
+                records_out=result['valid'],
+                dq_pass_rate=round(result['valid'] / result['total'] * 100, 1)
+                if result['total'] > 0 else 0.0
+            )
+        )
 
     except Exception as e:
         logging.error(f"KNMI Silver | Transform failed | {e}")
+        write_jsonl_entry(
+            stage="transform_knmi_silver",
+            status="error",
+            start_time=start_time,
+            error=str(e)
+        )
         raise
 
     finally:
-        if bronze_con: close_db(bronze_con)
-        if silver_con: close_db(silver_con)
-        if ops_con:    close_db(ops_con)
+        if bronze_con:
+            close_db(bronze_con)
+        if silver_con:
+            close_db(silver_con)
+        if ops_con:
+            close_db(ops_con)
 
 
 if __name__ == "__main__":

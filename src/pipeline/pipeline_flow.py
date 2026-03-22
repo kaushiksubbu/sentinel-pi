@@ -1,5 +1,4 @@
 import sys
-import os
 import subprocess
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -9,6 +8,7 @@ from prefect.task_runners import ConcurrentTaskRunner
 load_dotenv("/mnt/data/sentinel-pi/.env")
 
 VENV_PYTHON = sys.executable
+
 
 def docker_run(image: str, extra_flags: list = []):
     cmd = [
@@ -68,7 +68,7 @@ def ai_summary():
         extra_flags=[
             "-v", "/mnt/data/sentinel-pi/docs:/mnt/data/sentinel-pi/docs",
             "--add-host", "host.docker.internal:host-gateway",
-            "-e", f"OLLAMA_URL=http://host.docker.internal:11434/api/generate",
+            "-e", "OLLAMA_URL=http://host.docker.internal:11434/api/generate",
         ]
     )
 
@@ -86,7 +86,6 @@ def sentinel_pipeline():
     # zigbee_bronze = load_zigbee_bronze.submit(zigbee_result)
     # knmi_bronze_result=knmi_bronze.result()
     # zigbee_bronze_result=zigbee_bronze.result()
-
 
     # # # Parallel silver transform after respective bronze
     # knmi_silver = transform_knmi_silver.submit(knmi_bronze_result)
@@ -109,6 +108,7 @@ def sentinel_pipeline():
     transform_zigbee_silver()
     transform_gold()
     ai_summary()
+
 
 if __name__ == "__main__":
     sentinel_pipeline.serve(

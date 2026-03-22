@@ -1,5 +1,8 @@
 # transform_zigbee_to_silver.py
 
+from contracts import ZIGBEE_CONTRACT
+from metrics_contract import SilverMetrics
+from pipeline_logger import write_jsonl_entry
 from datetime import datetime, timezone
 from db_utils import connect_to_db, close_db, create_table_with_ddl
 from config import BRONZE_DB, SILVER_DB, OPS_DB
@@ -9,9 +12,9 @@ import json
 
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
 
-from contracts import ZIGBEE_CONTRACT
 
 def extract_by_contract(data: dict, concept: str) -> float:
     """
@@ -30,6 +33,7 @@ def extract_by_contract(data: dict, concept: str) -> float:
             )
     return value
 
+
 CREATE_WATERMARKS = """
     CREATE TABLE IF NOT EXISTS watermarks (
         source          VARCHAR,
@@ -38,6 +42,7 @@ CREATE_WATERMARKS = """
         PRIMARY KEY (source)
     )
 """
+
 
 def get_watermark(ops_con, source: str) -> datetime:
     """
@@ -49,7 +54,7 @@ def get_watermark(ops_con, source: str) -> datetime:
         FROM watermarks 
         WHERE source = ?
     """, [source]).fetchone()
-    
+
     if result is None:
         return datetime(1, 1, 1)  # 0001-01-01
     return result[0]
@@ -92,6 +97,7 @@ def read_zigbee_bronze(
         ORDER BY timestamp ASC
     """, [watermark]).fetchall()
 
+
 def validate_zigbee_row(
     temp: float,
     humidity: float,
@@ -116,9 +122,10 @@ def validate_zigbee_row(
         flags.append("rh_out_of_range")
 
     is_valid = len(flags) == 0
-    dq_flag  = "|".join(flags) if flags else None
+    dq_flag = "|".join(flags) if flags else None
 
     return is_valid, dq_flag
+
 
 def write_zigbee_silver(
     silver_con: duckdb.DuckDBPyConnection,
@@ -143,7 +150,7 @@ def write_zigbee_silver(
     max_observed_at = max(row[0] for row in bronze_rows)
     update_watermark(ops_con, 'zigbee', max_observed_at)
 
-    valid_count   = sum(1 for row in silver_rows if row[6] is True)
+    valid_count = sum(1 for row in silver_rows if row[6] is True)
     invalid_count = sum(1 for row in silver_rows if row[6] is False)
 
     return {
@@ -152,6 +159,7 @@ def write_zigbee_silver(
         "invalid":   invalid_count,
         "watermark": max_observed_at,
     }
+
 
 def validate_zigbee_rows(
     bronze_rows: list[tuple],
@@ -172,8 +180,8 @@ def validate_zigbee_rows(
         location = topic.split("/")[1].split(" ")[0]
 
         # Parse payload
-        data     = json.loads(payload)
-        temp     = extract_by_contract(data, "temperature")
+        data = json.loads(payload)
+        temp = extract_by_contract(data, "temperature")
         humidity = extract_by_contract(data, "humidity")
 
         # Validate
@@ -194,25 +202,27 @@ def validate_zigbee_rows(
 
     return silver_rows
 
+
 def transform_zigbee_to_silver():
     """
     Orchestrates Zigbee Bronze → Silver transformation.
     Reads → Validates → Writes.
     Excludes Bath at read stage.
     """
+    start_time = datetime.now(timezone.utc)
     bronze_con = None
     silver_con = None
-    ops_con    = None
+    ops_con = None
 
     try:
         bronze_con = connect_to_db(BRONZE_DB)
         silver_con = connect_to_db(SILVER_DB)
-        ops_con    = connect_to_db(OPS_DB)
+        ops_con = connect_to_db(OPS_DB)
 
         create_table_with_ddl(ops_con, CREATE_WATERMARKS)
 
         # Step 1 — Read
-        watermark   = get_watermark(ops_con, 'zigbee')
+        watermark = get_watermark(ops_con, 'zigbee')
         bronze_rows = read_zigbee_bronze(bronze_con, watermark)
 
         if not bronze_rows:
@@ -234,15 +244,35 @@ def transform_zigbee_to_silver():
             f"Invalid: {result['invalid']} | "
             f"Watermark: {result['watermark']}"
         )
+        write_jsonl_entry(
+            stage="transform_zigbee_silver",
+            status="success",
+            start_time=start_time,
+            metrics=SilverMetrics(
+                records_in=result['total'],
+                records_out=result['valid'],
+                dq_pass_rate=round(result['valid'] / result['total'] * 100, 1)
+                if result['total'] > 0 else 0.0
+            )
+        )
 
     except Exception as e:
         logging.error(f"Zigbee Silver | Transform failed | {e}")
+        write_jsonl_entry(
+            stage="transform_zigbee_silver",
+            status="error",
+            start_time=start_time,
+            error=str(e)
+        )
         raise
 
     finally:
-        if bronze_con: close_db(bronze_con)
-        if silver_con: close_db(silver_con)
-        if ops_con:    close_db(ops_con)
+        if bronze_con:
+            close_db(bronze_con)
+        if silver_con:
+            close_db(silver_con)
+        if ops_con:
+            close_db(ops_con)
 
 
 if __name__ == "__main__":

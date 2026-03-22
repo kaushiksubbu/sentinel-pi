@@ -37,7 +37,8 @@ def create_long_lived_client(
         }
 
         safe_topic = msg.topic.replace("/", "_").replace(" ", "_")
-        filename = os.path.join(landing_dir, f"zigbee_{safe_topic}_{datetime.now().strftime('%Y%m%d%H%M%S')}.json")
+        filename = os.path.join(
+            landing_dir, f"zigbee_{safe_topic}_{datetime.now().strftime('%Y%m%d%H%M%S')}.json")
 
         with open(filename, "w") as f:
             json.dump(record, f, indent=2, ensure_ascii=False)
@@ -51,6 +52,7 @@ def create_long_lived_client(
         client.username_pw_set(username=username, password=password)
 
     return client
+
 
 def create_one_shot_client(
     broker: str,
@@ -99,4 +101,3 @@ def create_one_shot_client(
     client.snapshot_duration = snapshot_duration
 
     return client
-

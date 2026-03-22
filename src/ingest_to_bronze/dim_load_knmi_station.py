@@ -1,15 +1,17 @@
 import duckdb
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
 
 # Config - Using the separate Sentinel DB for master data
 DB_PATH = 'data/sentinel_pi.db'
 CSV_PATH = '/mnt/data/sentinel-pi/data/csv_knmi_nl_20251017.csv'
 
+
 def load_master_stations():
     con = duckdb.connect(DB_PATH)
-    
+
     print(f"Loading full Master Data from {CSV_PATH}...")
 
     try:
@@ -54,14 +56,17 @@ def load_master_stations():
                 POS_OL as longitude
             FROM read_csv('{CSV_PATH}', header=True, auto_detect=True);
         """)
-        
-        total_rows = con.execute("SELECT COUNT(*) FROM main.master_stations").fetchone()[0]
-        print(f"✅ Master Station Data Loaded: {total_rows} stations available.")
+
+        total_rows = con.execute(
+            "SELECT COUNT(*) FROM main.master_stations").fetchone()[0]
+        print(
+            f"✅ Master Station Data Loaded: {total_rows} stations available.")
 
     except Exception as e:
         print(f"Master Load failed: {e}")
     finally:
         con.close()
+
 
 if __name__ == "__main__":
     load_master_stations()

@@ -2,6 +2,7 @@
 from datetime import datetime
 import os
 
+
 def setup_log_dir(log_dir: str, log_filename: str = "default.log") -> str:
     """
     Ensures the log directory exists and returns full path to log file.
@@ -15,6 +16,7 @@ def setup_log_dir(log_dir: str, log_filename: str = "default.log") -> str:
     """
     os.makedirs(log_dir, exist_ok=True)
     return os.path.join(log_dir, log_filename)
+
 
 def log(message: str, log_file: str):
     """

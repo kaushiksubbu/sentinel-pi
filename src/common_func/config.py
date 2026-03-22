@@ -1,38 +1,39 @@
 # config.py
-BRONZE_DB    = '/mnt/data/sentinel-pi/data/bronze/raw_source.db'
-SILVER_DB    = '/mnt/data/sentinel-pi/data/silver/master_data.db'
-GOLD_DB      = '/mnt/data/sentinel-pi/data/gold/analytics.db'
+import os
+BRONZE_DB = '/mnt/data/sentinel-pi/data/bronze/raw_source.db'
+SILVER_DB = '/mnt/data/sentinel-pi/data/silver/master_data.db'
+GOLD_DB = '/mnt/data/sentinel-pi/data/gold/analytics.db'
 REFERENCE_DB = '/mnt/data/sentinel-pi/data/reference/reference.db'
 OPS_DB = '/mnt/data/sentinel-pi/data/ops/ops.db'
 
 # thresholds limits
-KNMI_COMPLETENESS_MIN    = 0.84
-ZIGBEE_COMPLETENESS_MIN  = 0.94
+KNMI_COMPLETENESS_MIN = 0.84
+ZIGBEE_COMPLETENESS_MIN = 0.94
 
 # db_utils.py functions:
 # connect_to_db()          → write connections (pipeline only)
 # connect_to_db_readonly() → read connections (AI, queries, reporting)
 # close_db()               → always close after use
 
-#lock files
-LOCK_FILE  = "/mnt/data/sentinel-pi/locks/etl.lock"
-LOCK_META  = "/mnt/data/sentinel-pi/locks/etl_lock_meta.json"
+# lock files
+LOCK_FILE = "/mnt/data/sentinel-pi/locks/etl.lock"
+LOCK_META = "/mnt/data/sentinel-pi/locks/etl_lock_meta.json"
 
 # --- Paths ---
-PROJECT_DIR   = "/mnt/data/sentinel-pi"
-VENV_PYTHON   = "/mnt/data/sentinel-pi/.venv/bin/python3"
+PROJECT_DIR = "/mnt/data/sentinel-pi"
+VENV_PYTHON = "/mnt/data/sentinel-pi/.venv/bin/python3"
 COLLECT_ZIGBEE_SCRIPT = "/mnt/data/sentinel-pi/src/collect_data/collect_zigbee_files.py"
-BRONZE_LANDING    = "/mnt/data/sentinel-pi/data/bronze/landing_zone"
-PROCESSED_DIR  = "/mnt/data/sentinel-pi/data/bronze/landing_zone/processed"
+BRONZE_LANDING = "/mnt/data/sentinel-pi/data/bronze/landing_zone"
+PROCESSED_DIR = "/mnt/data/sentinel-pi/data/bronze/landing_zone/processed"
 REPORTS_DIR = "/mnt/data/sentinel-pi/docs/daily_reports"
 
 # Project paths
-PROJECT_DIR           = "/mnt/data/sentinel-pi"
-VENV_PYTHON           = "/mnt/data/sentinel-pi/.venv/bin/python3"
+PROJECT_DIR = "/mnt/data/sentinel-pi"
+VENV_PYTHON = "/mnt/data/sentinel-pi/.venv/bin/python3"
 
 # Table names
-BRONZE_ZIGBEE_TBL  = "zigbee_raw"
-BRONZE_KNMI_TBL    = "knmi_raw"
+BRONZE_ZIGBEE_TBL = "zigbee_raw"
+BRONZE_KNMI_TBL = "knmi_raw"
 SILVER_WEATHER_TBL = "weather_silver"
 
 # --- Constants ---
@@ -46,11 +47,14 @@ KNMI_BASE_URL = (
 )
 
 # Log file area
-LOG_FILE            = "/mnt/data/sentinel-pi/logs/cron.log"
+LOG_FILE = "/mnt/data/sentinel-pi/logs/cron.log"
 STRUCTURED_LOG_FILE = "/mnt/data/sentinel-pi/logs/pipeline.jsonl"
 
+# JSONL Read Config
+JSONL_RUNS_TO_READ = 5
+JSONL_LINES_PER_RUN = 8
+
 # Ollama Config
-import os
 OLLAMA_URL = os.getenv(
     "OLLAMA_URL",
     "http://localhost:11434/api/generate"

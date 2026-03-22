@@ -1,5 +1,8 @@
 # collect_data_raw.py
 
+from config import (
+    BRONZE_LANDING,
+)
 import os
 import sys
 import logging
@@ -8,11 +11,9 @@ from dotenv import load_dotenv
 from collect_data_knmi import collect_knmi
 from collect_data_zigbee import collect_zigbee
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
 
-from config import (
-    BRONZE_LANDING,
-)
 
 LOG_FILE = "/mnt/data/sentinel-pi/logs/cron.log"
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)

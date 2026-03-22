@@ -1,15 +1,18 @@
-#colect_zigbee_files.py
+# colect_zigbee_files.py
+from datetime import datetime, timezone
+from metrics_contract import ZigbeeCollectMetrics
+from pipeline_logger import write_jsonl_entry
+from logger import setup_log_dir, log
+from dotenv import load_dotenv
+from mqtt_client import create_long_lived_client, create_one_shot_client
 import os
 import time
 import json
 import logging
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
 
-from mqtt_client import create_long_lived_client, create_one_shot_client
-from dotenv import load_dotenv
-from logger import setup_log_dir, log
-from datetime import datetime
 
 # --- CHANGE THIS FLAG TO SWITCH BEHAVIOR ---
 USE_ONE_SHOT = True  # True for cron; False for long‑lived process
@@ -62,8 +65,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 
 if __name__ == "__main__":
-    if not USERNAME or not PASSWORD:
-        logging.warning("Warning: MQTT_USER or MQTT_PASS is missing")
+    start_time = datetime.now(timezone.utc)
 
     client = (
         create_one_shot_client(
@@ -91,15 +93,14 @@ if __name__ == "__main__":
         client.connect(BROKER, PORT, 60)
 
         if USE_ONE_SHOT:
-            logging.info("Starting one‑shot MQTT loop - (timed window)")
-
-            # Run loop in background
             client.loop_start()
-            time.sleep(5 * 60)        # 5 minutes
+            time.sleep(5 * 60)
             client.loop_stop()
             client.disconnect()
-            
-            # Save all entries per topic
+
+            total_files = 0
+            total_messages = 0
+
             for topic, records in client.all_messages.items():
                 safe_topic = topic.replace("/", "_").replace(" ", "_")
                 filename = os.path.join(
@@ -107,21 +108,37 @@ if __name__ == "__main__":
                     f"zigbee_{safe_topic}_{datetime.now().strftime('%Y%m%d%H')}.json"
                 )
                 with open(filename, "w") as f:
-                    json.dump(
-                        {
-                            "topic": topic,
-                            "messages": records,
-                            "window_start": records[0]["timestamp"] if records else None,
-                            "window_end": datetime.now().isoformat(),
-                        },
-                        f,
-                        indent=2,
-                        ensure_ascii=False,
-                    )
-                logging.info(f"Saved {len(records)} messages for {topic} to {filename}")
+                    json.dump({
+                        "topic": topic,
+                        "messages": records,
+                        "window_start": records[0]["timestamp"] if records else None,
+                        "window_end": datetime.now().isoformat(),
+                    }, f, indent=2, ensure_ascii=False)
+
+                logging.info(
+                    f"Saved {len(records)} messages for {topic} to {filename}")
+                total_files += 1
+                total_messages += len(records)
+
+            # ONE entry for the whole run — after the loop
+            write_jsonl_entry(
+                stage="collect_zigbee",
+                status="success",
+                start_time=start_time,
+                metrics=ZigbeeCollectMetrics(
+                    files_collected=total_files,
+                    messages_received=total_messages
+                )
+            )
         else:
-            logging.info("Starting long‑lived MQTT loop (loop_forever).")
             client.loop_forever()
 
     except Exception as e:
         logging.error(f"Error in MQTT client run: {e}")
+        write_jsonl_entry(
+            stage="collect_zigbee",
+            status="error",
+            start_time=start_time,
+            error=str(e)
+        )
+        raise

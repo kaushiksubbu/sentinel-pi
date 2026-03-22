@@ -1,10 +1,11 @@
-#create_silver_tables.py
+# create_silver_tables.py
 from db_utils import connect_to_db, close_db, create_table_with_ddl
 import logging
 from config import SILVER_DB, GOLD_DB
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
 
 CREATE_WEATHER_SILVER = """
     CREATE TABLE IF NOT EXISTS weather_silver (
@@ -42,6 +43,7 @@ CREATE_GOLD_WEATHER = """
     )
 """
 
+
 def create_silver_tables():
     con = connect_to_db(SILVER_DB)
     try:
@@ -53,6 +55,7 @@ def create_silver_tables():
     finally:
         close_db(con)
 
+
 def create_gold_tables():
     con = connect_to_db(GOLD_DB)
     try:
@@ -63,6 +66,7 @@ def create_gold_tables():
         raise
     finally:
         close_db(con)
+
 
 if __name__ == "__main__":
     create_silver_tables()

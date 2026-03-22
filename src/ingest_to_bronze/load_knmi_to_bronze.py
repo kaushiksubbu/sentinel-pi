@@ -13,11 +13,16 @@ from db_utils import (
     bulk_insert_ignore,
 )
 from config import BRONZE_DB, BRONZE_LANDING, PROCESSED_DIR, STATIONS
+
+from pipeline_logger import write_jsonl_entry
+from metrics_contract import BronzeMetrics
+
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
 
 # ── Constants ──────────────────────────────────────────────────────
-TABLE_NAME     = "knmi_raw"
+TABLE_NAME = "knmi_raw"
 # ── Schema ─────────────────────────────────────────────────────────
 # Explicit. No inference. Every column declared.
 CREATE_KNMI_RAW = f"""
@@ -64,6 +69,7 @@ CREATE_KNMI_RAW = f"""
     )
 """
 
+
 # ── Helpers ────────────────────────────────────────────────────────
 def get_unprocessed_files(landing_dir: str) -> list:
     """Returns all .nc files not yet in /processed."""
@@ -71,6 +77,7 @@ def get_unprocessed_files(landing_dir: str) -> list:
         str(f) for f in Path(landing_dir).glob("*.nc")
         if f.is_file()
     ]
+
 
 def extract_all_variables(ds: xr.Dataset, station_id: str, source_file: str) -> dict:
     """
@@ -136,6 +143,8 @@ def extract_all_variables(ds: xr.Dataset, station_id: str, source_file: str) -> 
     }
 
 # ── Main Load Function ─────────────────────────────────────────────
+
+
 def load_knmi_files_to_bronze():
     """
     Reads ALL unprocessed .nc files.
@@ -145,6 +154,7 @@ def load_knmi_files_to_bronze():
     Read pattern: each file opened and closed independently.
     Write pattern: single external connection for bulk insert.
     """
+    start_time = datetime.now(timezone.utc)
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     files = get_unprocessed_files(BRONZE_LANDING)
 
@@ -185,15 +195,15 @@ def load_knmi_files_to_bronze():
         create_table_with_ddl(con, CREATE_KNMI_RAW)
 
         # bulk load
-        
-        insert_log = bulk_insert_ignore(con,TABLE_NAME,rows)
+
+        insert_log = bulk_insert_ignore(con, TABLE_NAME, rows)
 
         logging.info(
-                        f"KNMI Bronze | "
-                        f"Attempted: {insert_log['attempted']} | "
-                        f"Inserted: {insert_log['inserted']} | "
-                        f"Duplicates: {insert_log['duplicates']}"
-                    )
+            f"KNMI Bronze | "
+            f"Attempted: {insert_log['attempted']} | "
+            f"Inserted: {insert_log['inserted']} | "
+            f"Duplicates: {insert_log['duplicates']}"
+        )
 
         # ── Step 3: Move files ONLY after successful insert ──
         for file_path in files_to_move:
@@ -203,9 +213,22 @@ def load_knmi_files_to_bronze():
             )
             logging.info(f"KNMI Bronze: Moved {file_path} → processed/")
 
+        write_jsonl_entry(
+            stage="load_knmi_bronze",
+            status="success",
+            start_time=start_time,
+            metrics=BronzeMetrics(records_landed=len(rows))
+        )
+
     except Exception as e:
         logging.error(f"KNMI Bronze: Bulk insert failed | {e}")
         # Files stay in landing zone — safe to retry next cron run
+        write_jsonl_entry(
+            stage="load_knmi_bronze",
+            status="error",
+            start_time=start_time,
+            error=str(e)
+        )
         raise
     finally:
         close_db(con)

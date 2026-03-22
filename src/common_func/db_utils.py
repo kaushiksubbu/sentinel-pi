@@ -42,7 +42,7 @@ def create_table_if_not_exists(
 def upsert_or_append(con, table: str, rows: list, on_conflict=None):
     if not rows:
         return
-    
+
     # Handle both dicts and tuples
     processed_rows = []
     for row in rows:
@@ -53,12 +53,13 @@ def upsert_or_append(con, table: str, rows: list, on_conflict=None):
         else:
             # Already tuple
             processed_rows.append(row)
-    
+
     columns = list(rows[0].keys()) if isinstance(rows[0], dict) else None
     placeholders = ', '.join(['?' for _ in processed_rows[0]])
     query = f"INSERT INTO {table} VALUES ({placeholders})"
-    
+
     con.executemany(query, processed_rows)
+
 
 def read_query(
     db_path: str,
@@ -98,16 +99,17 @@ def read_table(
 
     return read_query(db_path, sql)
 
+
 def infer_schema(sample_row: dict) -> dict:
     """Dynamically infer DuckDB column types - NO IMPORTS NEEDED 
     WARNING: Prototype use only - Donot use for Bronze or Silver table creation.
     Schema must be explicit in production layers.
     """
     schema = {}
-    
+
     for col, value in sample_row.items():
         value_type = type(value).__name__
-        
+
         if value is None or value == "":
             schema[col] = "VARCHAR"
         elif value_type == 'str':
@@ -120,13 +122,14 @@ def infer_schema(sample_row: dict) -> dict:
             schema[col] = "BOOLEAN"
         else:
             schema[col] = "VARCHAR"
-    
+
     return schema
+
 
 def create_table_with_ddl(
     con: duckdb.DuckDBPyConnection,
     ddl: str,
-    ):
+):
     """
     Creates table using raw DDL string.
     Use when schema requires PRIMARY KEY, 
@@ -134,6 +137,7 @@ def create_table_with_ddl(
     Simple schemas use create_table_if_not_exists instead.
     """
     con.execute(ddl)
+
 
 def bulk_insert_ignore(
     con: duckdb.DuckDBPyConnection,
@@ -158,21 +162,21 @@ def bulk_insert_ignore(
     """
 
     tuples = [tuple(row[c] for c in columns) for row in rows]
-    
+
     # Count before insert
     count_before = con.execute(
         f"SELECT COUNT(*) FROM {table}"
     ).fetchone()[0]
-    
+
     con.executemany(insert_sql, tuples)
-    
+
     # Count after insert
     count_after = con.execute(
         f"SELECT COUNT(*) FROM {table}"
     ).fetchone()[0]
 
-    attempted  = len(tuples)
-    inserted   = count_after - count_before
+    attempted = len(tuples)
+    inserted = count_after - count_before
     duplicates = attempted - inserted
 
     return {
@@ -180,6 +184,7 @@ def bulk_insert_ignore(
         "inserted":   inserted,
         "duplicates": duplicates,
     }
+
 
 def connect_to_db_readonly(db_path: str):
     """

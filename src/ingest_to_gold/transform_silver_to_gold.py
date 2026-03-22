@@ -8,15 +8,18 @@
 # orchestrated via Docker Compose.
 # This code requires no rewrite for that migration.
 
+from metrics_contract import GoldMetrics
+from pipeline_logger import write_jsonl_entry
+from config import SILVER_DB, GOLD_DB, OPS_DB, KNMI_COMPLETENESS_MIN, ZIGBEE_COMPLETENESS_MIN
+from db_utils import connect_to_db, close_db, create_table_with_ddl
 from datetime import datetime, timezone, timedelta
 import duckdb
 import logging
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), '..', 'common_func'))
 
-from db_utils import connect_to_db, close_db, create_table_with_ddl
-from config import SILVER_DB, GOLD_DB, OPS_DB, KNMI_COMPLETENESS_MIN, ZIGBEE_COMPLETENESS_MIN
 
 CREATE_WATERMARKS = """
     CREATE TABLE IF NOT EXISTS watermarks (
@@ -123,15 +126,15 @@ def aggregate_to_gold(
 
     for knmi in knmi_rows:
         window_start, outdoor_location, \
-        avg_outdoor_temp, avg_outdoor_humidity, \
-        avg_wind_speed, knmi_valid_count, knmi_total_count = knmi
+            avg_outdoor_temp, avg_outdoor_humidity, \
+            avg_wind_speed, knmi_valid_count, knmi_total_count = knmi
 
         window_end = window_start + timedelta(hours=1)
 
         for zigbee in zigbee_rows:
             z_window_start, indoor_location, \
-            avg_indoor_temp, avg_indoor_humidity, \
-            zigbee_valid_count, zigbee_total_count = zigbee
+                avg_indoor_temp, avg_indoor_humidity, \
+                zigbee_valid_count, zigbee_total_count = zigbee
 
             # Only join matching hours
             if z_window_start != window_start:
@@ -140,10 +143,10 @@ def aggregate_to_gold(
             # DQ validation
             flags = []
 
-            knmi_completeness   = knmi_valid_count / knmi_total_count \
-                                if knmi_total_count > 0 else 0
+            knmi_completeness = knmi_valid_count / knmi_total_count \
+                if knmi_total_count > 0 else 0
             zigbee_completeness = zigbee_valid_count / zigbee_total_count \
-                                if zigbee_total_count > 0 else 0
+                if zigbee_total_count > 0 else 0
 
             if knmi_completeness < KNMI_COMPLETENESS_MIN:
                 flags.append("knmi_low_completeness")
@@ -151,7 +154,7 @@ def aggregate_to_gold(
                 flags.append("zigbee_low_completeness")
 
             is_valid = len(flags) == 0
-            dq_flag  = "|".join(flags) if flags else None
+            dq_flag = "|".join(flags) if flags else None
 
             gold_rows.append((
                 window_start,           # window_start
@@ -198,7 +201,7 @@ def write_gold(
     max_window_start = max(row[0] for row in gold_rows)
     update_watermark(ops_con, 'gold_weather', max_window_start)
 
-    valid_count   = sum(1 for row in gold_rows if row[11] is True)
+    valid_count = sum(1 for row in gold_rows if row[11] is True)
     invalid_count = sum(1 for row in gold_rows if row[11] is False)
 
     return {
@@ -215,14 +218,15 @@ def transform_silver_to_gold():
     Reads → Aggregates → Writes.
     Each step independently responsible.
     """
+    start_time = datetime.now(timezone.utc)
     silver_con = None
-    gold_con   = None
-    ops_con    = None
+    gold_con = None
+    ops_con = None
 
     try:
         silver_con = connect_to_db(SILVER_DB)
-        gold_con   = connect_to_db(GOLD_DB)
-        ops_con    = connect_to_db(OPS_DB)
+        gold_con = connect_to_db(GOLD_DB)
+        ops_con = connect_to_db(OPS_DB)
 
         create_table_with_ddl(ops_con, CREATE_WATERMARKS)
 
@@ -254,14 +258,38 @@ def transform_silver_to_gold():
             f"Watermark: {result['watermark']}"
         )
 
+        dq_pass_rate = round(result['valid'] / result['total'] * 100, 1) \
+            if result['total'] > 0 else 0.0
+        write_jsonl_entry(
+            stage="transform_gold",
+            status="success",
+            start_time=start_time,
+            metrics=GoldMetrics(
+                knmi_rows_in=len(knmi_rows),
+                zigbee_rows_in=len(zigbee_rows),
+                gold_rows_written=result['total'],
+                dq_pass_rate=dq_pass_rate
+                if result['total'] > 0 else 0.0
+            )
+        )
+
     except Exception as e:
         logging.error(f"Gold | Transform failed | {e}")
+        write_jsonl_entry(
+            stage="transform_gold",
+            status="error",
+            start_time=start_time,
+            error=str(e)
+        )
         raise
 
     finally:
-        if silver_con: close_db(silver_con)
-        if gold_con:   close_db(gold_con)
-        if ops_con:    close_db(ops_con)
+        if silver_con:
+            close_db(silver_con)
+        if gold_con:
+            close_db(gold_con)
+        if ops_con:
+            close_db(ops_con)
 
 
 if __name__ == "__main__":

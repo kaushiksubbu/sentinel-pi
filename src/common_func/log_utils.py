@@ -44,4 +44,6 @@ def log_event(
     }
     with open(STRUCTURED_LOG_FILE, 'a') as f:
         f.write(json.dumps(event) + "\n")
+
+
 EOF
