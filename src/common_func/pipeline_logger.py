@@ -1,5 +1,5 @@
 # pipeline_logger.py
-
+import os
 from config import STRUCTURED_LOG_FILE, JSONL_RUNS_TO_READ, JSONL_LINES_PER_RUN
 import json
 from datetime import datetime, timezone
@@ -20,15 +20,15 @@ def write_jsonl_entry(stage: str,
         run_name = None
 
     entry = {
-        "run_id":           start_time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "run_name":         run_name,    
-        "stage":            stage,
-        "status":           status,
-        "start_time":       start_time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "end_time":         datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
-        "metrics":          metrics or {},
+        "run_id": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "run_name": run_name,
+        "stage": stage,
+        "status": status,
+        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "end_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
+        "metrics": metrics or {},
         "dq_failed_reason": dq_failed_reason,
-        "error":            error
+        "error": error
     }
 
     with open(STRUCTURED_LOG_FILE, "a") as f:

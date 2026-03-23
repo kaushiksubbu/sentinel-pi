@@ -1,0 +1,10 @@
+[flake8]
+max-line-length = 100
+exclude =
+    src/temp_and_scratch,
+    .venv,
+    __pycache__
+per-file-ignores =
+    src/common_func/config.py: E501
+statistics = True
+count = True

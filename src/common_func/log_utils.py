@@ -36,14 +36,11 @@ def log_event(
 
     # Structured JSON
     event = {
-        "ts":        datetime.now(timezone.utc).isoformat(),
-        "level":     level,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "level": level,
         "component": component,
-        "message":   message,
-        "metrics":   metrics or {}
+        "message": message,
+        "metrics": metrics or {}
     }
     with open(STRUCTURED_LOG_FILE, 'a') as f:
         f.write(json.dumps(event) + "\n")
-
-
-EOF
