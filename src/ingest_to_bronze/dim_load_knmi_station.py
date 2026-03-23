@@ -37,14 +37,14 @@ def load_master_stations():
         # We use a temp view to handle the data cleaning (dates) before inserting
         con.execute(f"""
             INSERT OR REPLACE INTO main.master_stations
-            SELECT 
+            SELECT
                 CAST(STN AS VARCHAR) as station_code,
                 WSI as wigos_id,
                 -- Handle KNMI date format (YYYYMMDD) or NULL
-                TRY_CAST(strptime(CAST(STARTT AS VARCHAR), '%Y-%m-%d') AS DATE) as operational_start,
+                TRY_CAST(strptime(CAST(STARTT AS VARCHAR), '%Y-%m-%d') AS DATE) as operational_start, # noqa: E501
                 -- Handle stop date (often 99991231 for active)
-                CASE 
-                    WHEN CAST(STOPT AS VARCHAR) IN ('99991231', '9999-12-31') THEN NULL 
+                CASE
+                    WHEN CAST(STOPT AS VARCHAR) IN ('99991231', '9999-12-31') THEN NULL
                     ELSE TRY_CAST(strptime(CAST(STOPT AS VARCHAR), '%Y-%m-%d') AS DATE)
                 END as operational_stop,
                 LOCATIE as location_name,

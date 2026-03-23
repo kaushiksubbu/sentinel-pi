@@ -1,4 +1,4 @@
-# Run with: /mnt/data/sentinel-pi/.venv/bin/python3 src/temp_and_scratch/scratch.py
+# Run with: src/temp_and_scratch/scratch.py
 # NOT with: python3 src/scratch.py
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'common_func'))

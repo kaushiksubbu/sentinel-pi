@@ -1,8 +1,6 @@
 # db_utils.py
 import duckdb
 import os
-import datetime
-import logging
 
 
 def ensure_db_dir(db_path: str):
@@ -101,7 +99,7 @@ def read_table(
 
 
 def infer_schema(sample_row: dict) -> dict:
-    """Dynamically infer DuckDB column types - NO IMPORTS NEEDED 
+    """Dynamically infer DuckDB column types - NO IMPORTS NEEDED
     WARNING: Prototype use only - Donot use for Bronze or Silver table creation.
     Schema must be explicit in production layers.
     """
@@ -132,7 +130,7 @@ def create_table_with_ddl(
 ):
     """
     Creates table using raw DDL string.
-    Use when schema requires PRIMARY KEY, 
+    Use when schema requires PRIMARY KEY,
     constraints, or complex column definitions.
     Simple schemas use create_table_if_not_exists instead.
     """

@@ -29,8 +29,8 @@ def get_watermark(ops_con, source: str) -> datetime:
     Returns 0001-01-01 if no watermark exists.
     """
     result = ops_con.execute("""
-        SELECT last_processed 
-        FROM watermarks 
+        SELECT last_processed
+        FROM watermarks
         WHERE source = ?
     """, [source]).fetchone()
 
@@ -44,7 +44,7 @@ def update_watermark(ops_con, source: str, timestamp: datetime):
     Updates watermark for source after successful transform.
     """
     ops_con.execute("""
-        INSERT OR REPLACE INTO watermarks 
+        INSERT OR REPLACE INTO watermarks
         (source, last_processed, updated_at)
         VALUES (?, ?, ?)
     """, [
@@ -80,7 +80,7 @@ def read_knmi_bronze(
     Single responsibility: fetch only.
     """
     return bronze_con.execute("""
-        SELECT 
+        SELECT
             observed_at,
             stationname,
             ta,
@@ -121,9 +121,9 @@ def write_knmi_silver(
     invalid_count = sum(1 for row in silver_rows if row[6] is False)
 
     return {
-        "total":     len(silver_rows),
-        "valid":     valid_count,
-        "invalid":   invalid_count,
+        "total": len(silver_rows),
+        "valid": valid_count,
+        "invalid": invalid_count,
         "watermark": max_observed_at,
     }
 

@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from metrics_contract import ZigbeeCollectMetrics
 from pipeline_logger import write_jsonl_entry
-from logger import setup_log_dir, log
+from logger import setup_log_dir
 from dotenv import load_dotenv
 from mqtt_client import create_long_lived_client, create_one_shot_client
 import os

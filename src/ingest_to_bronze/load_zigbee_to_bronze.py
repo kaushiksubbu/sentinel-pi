@@ -4,10 +4,7 @@ from datetime import datetime, timezone
 from metrics_contract import BronzeMetrics
 from pipeline_logger import write_jsonl_entry
 from db_utils import (
-    connect_to_db,
     close_db,
-    create_table_with_ddl,
-    bulk_insert_ignore,
 )
 from config import BRONZE_DB, BRONZE_ZIGBEE_TBL, BRONZE_LANDING
 import os
@@ -102,7 +99,7 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
                                 # Prefer message topic
                                 "topic": message.get("topic", file_topic),
                                 "payload": json.dumps(message.get("payload", {})),
-                                "timestamp": datetime.fromisoformat(message.get("timestamp", "2026-01-01T00:00:00")),
+                                "timestamp": datetime.fromisoformat(message.get("timestamp", "2026-01-01T00:00:00")),  # noqa: E501
                                 "source_file": os.path.basename(file_path)
                             })
                 else:

@@ -39,7 +39,7 @@ Pipeline stage metrics contract:
 - transform_knmi_silver / transform_zigbee_silver: records_in, records_out, dq_pass_rate
 - transform_gold: knmi_rows_in, zigbee_rows_in, gold_rows_written
   Rule: gold_rows_written MUST equal knmi_rows_in × zigbee_rows_in. Flag if not.
-- dq_pass_rate below {KNMI_COMPLETENESS_MIN*100} for KNMI or {ZIGBEE_COMPLETENESS_MIN*100} for Zigbee — flag as warning
+- dq_pass_rate below {KNMI_COMPLETENESS_MIN*100} for KNMI or {ZIGBEE_COMPLETENESS_MIN*100} for Zigbee — flag as warning # noqa: E501
 
 Recent pipeline runs (structured JSONL):
 {json.dumps(jsonl_entries, indent=2, default=str)}
@@ -104,7 +104,6 @@ def read_gold_metrics() -> dict:
         return {"error": str(e)}
 
 
-
 def call_llama3_2_1b(prompt: str) -> str:
     """Call llama3.2:1b via Ollama API."""
     try:
@@ -115,16 +114,16 @@ def call_llama3_2_1b(prompt: str) -> str:
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                            "num_predict": 300,   # hard cap on output tokens
-                            "temperature": 0.1    # less creative = faster = more factual
-                            }
+                    "num_predict": 300,   # hard cap on output tokens
+                    "temperature": 0.1    # less creative = faster = more factual
+                }
             },
             timeout=300,
         )
         response.raise_for_status()
         return response.json().get("response", "No response from Phi3.")
     except Exception as e:
-        return f"Phi3 call failed: {str(e)}"
+        return f"llama3 call failed: {str(e)}"
 
 
 def save_report(content: str) -> str:
