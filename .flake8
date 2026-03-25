@@ -3,7 +3,8 @@ max-line-length = 100
 exclude =
     src/temp_and_scratch,
     .venv,
-    __pycache__
+    __pycache__,
+    *.md
 per-file-ignores =
     src/common_func/config.py: E501
 statistics = True
