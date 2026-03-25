@@ -23,7 +23,8 @@ def write_jsonl_entry(stage: str,
 #        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
 #        "end_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
     entry = {
-        "run_id":start_time.astimezone(ZoneInfo("Europe/Amsterdam")).strftime("%Y-%m-%dT%H:%M:%S"),
+        "run_id": start_time.astimezone(ZoneInfo("Europe/Amsterdam"))
+                            .strftime("%Y-%m-%dT%H:%M:%S"),
         "run_name": run_name,
         "stage": stage,
         "status": status,
