@@ -254,3 +254,36 @@ Priority: High — Govern.2 Week 1
  DataHub / Atlan — Dutch market contract registry tools
 Atlan used at Booking.com and Adyen
 Enterprise path from metrics_contract.py TypedDict
+
+BL-000  CLOSED  flake8 + GitHub Actions CI (Govern.2 Day 1)
+
+BL-001  OPEN  Merge collect_zigbee_files.py into 
+              collect_data_zigbee.py
+
+BL-002  OPEN  Deprecate cron.log / LOG_FILE
+
+BL-003  CLOSED  Fix remaining flake8 errors (superseded 
+              by BL-000 — can CLOSE)
+
+BL-006  OPEN  Retire collect_data_raw.py
+
+BL-007  OPEN  Lock Prefect to 127.0.0.1 
+              (superseded by Dagster decision — REVIEW)
+
+BL-008 — Prefect SQLite lock causes server death
+Prefect DB locked mid-write → server killed → 
+data collection stops silently.
+No alert. No recovery. Hours of data lost.
+
+Root fix: Dagster (Govern.2 Day 2)
+Interim fix: systemd Restart=always on prefect-server
+             + RestartSec=30
+
+BL-009  OPEN  TZ=Europe/Amsterdam all scripts
+
+BL-010  OPEN  .env not bash-safe fix
+
+BL-011  OPEN  Enterprise CI/CD immutable image pattern
+              (Phase 3 or 4)
+
+BL-012  NEW   NAS health monitoring cron (Week 2)

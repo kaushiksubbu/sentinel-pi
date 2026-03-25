@@ -51,7 +51,7 @@ LOG_FILE = "/mnt/data/sentinel-pi/logs/cron.log"
 STRUCTURED_LOG_FILE = "/mnt/data/sentinel-pi/logs/pipeline.jsonl"
 
 # JSONL Read Config
-JSONL_RUNS_TO_READ = 2  # changed from 5
+JSONL_RUNS_TO_READ = 6  # covers 1 hour of 10-min pipeline runs
 JSONL_LINES_PER_RUN = 8
 
 # Ollama Config

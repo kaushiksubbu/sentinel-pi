@@ -114,11 +114,11 @@ def call_llama3_2_1b(prompt: str) -> str:
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                    "num_predict": 300,   # hard cap on output tokens
+                    "num_predict": 600,   # hard cap on output tokens
                     "temperature": 0.1    # less creative = faster = more factual
                 }
             },
-            timeout=300,
+            timeout=1800,
         )
         response.raise_for_status()
         return response.json().get("response", "No response from Phi3.")

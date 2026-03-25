@@ -530,3 +530,34 @@ Context: Phase 1 AI summary hallucinations traced to unstructured cron.log input
 Decision: pipeline.jsonl replaces cron.log as primary pipeline observability artifact. One JSON line per stage per run. JSONL_RUNS_TO_READ=5, JSONL_LINES_PER_RUN=8 — reads last 40 lines (~10KB).
 Rationale: AI summary has ground truth metrics. Hallucination root cause eliminated at source. JSONL is append-only, lightweight (~250 bytes/line), and trivially queryable. cron.log deprecated — removal in Govern.2.
 Consequences: Zero AI hallucinations from logging input. Structured observability enables future Soda Core and OpenLineage integration in Govern.2.
+
+ADR-042: CI/CD Lint Enforcement via GitHub Actions - flake8 + GitHub Actions as Code Quality Gate
+Status: Implemented
+Date: 2026-03-23
+
+Context:
+  Duplicate function definition in collect_knmi caused
+  silent wrong behaviour in Govern.1. No automated check
+  existed to catch this class of error.
+
+Decision:
+  GitHub Actions workflow triggers flake8 on every push
+  to feature/** and main. max-line-length=100.
+  temp_and_scratch excluded. Zero tolerance on F-class
+  errors (undefined names, unused imports).
+
+Consequences:
+  + Silent bugs caught before merge
+  + CI caught flow_run F821 that local env missed
+  + Enterprise engineering practice on portfolio project
+  + Every commit is now provably clean
+
+Evidence: d1c616b — green CI in 13s
+
+ADR-044 — REVISED STATUS
+Decision: Prefect retained for Govern.2
+Reason: Root cause was scheduling overlap not 
+        tool instability. Fix deployed — AI summary 
+        decoupled to hourly. 100% success rate confirmed.
+Dagster: Deferred to Phase 3 if needed.
+        OpenLineage via Prefect integration instead.fv

@@ -3,6 +3,7 @@ import os
 from config import STRUCTURED_LOG_FILE, JSONL_RUNS_TO_READ, JSONL_LINES_PER_RUN
 import json
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 import sys
 sys.path.insert(0, "/home/kaushik/sentinel-pi/src/common_func")
@@ -18,14 +19,20 @@ def write_jsonl_entry(stage: str,
         run_name = os.getenv("PREFECT_RUN_NAME", None)
     except Exception:
         run_name = None
-
+#          "run_id": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+#        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+#        "end_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
     entry = {
-        "run_id": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "run_id":start_time.astimezone(ZoneInfo("Europe/Amsterdam")).strftime("%Y-%m-%dT%H:%M:%S"),
         "run_name": run_name,
         "stage": stage,
         "status": status,
-        "start_time": start_time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "end_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
+        "start_time": start_time.replace(tzinfo=timezone.utc)
+                                .astimezone(ZoneInfo("Europe/Amsterdam"))
+                                .strftime("%Y-%m-%dT%H:%M:%S"),
+        "end_time": datetime.now(timezone.utc)
+                            .astimezone(ZoneInfo("Europe/Amsterdam"))
+                            .strftime("%Y-%m-%dT%H:%M:%S"),
         "metrics": metrics or {},
         "dq_failed_reason": dq_failed_reason,
         "error": error
