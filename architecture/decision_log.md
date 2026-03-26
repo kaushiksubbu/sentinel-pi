@@ -554,10 +554,84 @@ Consequences:
 
 Evidence: d1c616b — green CI in 13s
 
-ADR-044 — REVISED STATUS
-Decision: Prefect retained for Govern.2
-Reason: Root cause was scheduling overlap not 
-        tool instability. Fix deployed — AI summary 
-        decoupled to hourly. 100% success rate confirmed.
-Dagster: Deferred to Phase 3 if needed.
-        OpenLineage via Prefect integration instead.fv
+
+# ADR-043: NAS Failover Dual-Write Strategy
+
+**Status:** Accepted — Backlog (Govern.2 Week 2)
+**Date:** 2026-03-26
+
+## Context
+NAS drive (sda1/sdb1) disconnected mid-session on 2026-03-23.
+Prefect server died due to SQLite lock on prefect.db stored
+on NAS. Pipeline data collection stopped silently for 3.5hrs.
+No alert. No failover. Single point of failure confirmed.
+
+## Decision
+Dual-write pipeline.jsonl and DuckDB databases to:
+- Primary:   /mnt/data/sentinel-pi/ (NAS)
+- Secondary: /home/kaushik/sentinel-pi/data-failover/ (Pi SD)
+
+Cron healthcheck every 5 mins:
+If /mnt/data unmounted → symlink failover path → log alert.
+
+## Rationale
+Pi SD card (mmcblk0, 235GB) has sufficient headroom.
+Ephemeral containers read latest timestamp via watermark —
+zero pipeline break on failover activation.
+NAS is convenience not necessity for pipeline operation.
+
+## Consequences
++ Pipeline survives NAS disconnect automatically
++ No data loss on drive failure
++ Alert logged for human review
+- Dual-write adds minor I/O overhead (acceptable)
+
+## Implementation
+Week 2.
+
+# ADR-044: Cron Scheduling + Prefect Execution
+
+**Status:** Accepted / Implemented
+**Date:** 2026-03-26
+
+## Context
+Prefect serve() managing 4 concurrent high-frequency
+deployments (6min, 10min, 10min, daily) caused scheduler
+starvation on Pi 8GB. last_polled froze. Flows stopped
+firing silently. AI summary continued (hourly) but
+collection flows dead for 3.5+ hours on two occasions.
+
+Root cause: serve() scheduler loop starved under
+concurrent schedule pressure on constrained hardware.
+
+## Decision
+Separate scheduling from execution:
+- Cron: triggers deployments on schedule (4 entries)
+- Prefect: executes flows, handles retry, observability, UI
+
+serve() removed from pipeline_flow.py.
+anchor_date removed — not supported in Prefect 3.6.22.
+
+## Cron Schedule
+*/10  collect-knmi    (KNMI publish cadence)
+*/6   collect-zigbee  (MQTT 5-min window + 1-min gap)
+*/10  load-transform  (watermark-driven, safe overlap)
+08:30 ai-summary      (daily digest)
+
+## Rationale
+Cron has scheduled Linux jobs reliably for 50 years.
+Prefect's value is execution (retry, UI, observability)
+not scheduling on constrained hardware.
+Same pattern as enterprise: Airflow DAGs triggered by
+external schedulers (AWS EventBridge, GCP Cloud Scheduler).
+
+## Consequences
++ Zero scheduler starvation — cron never freezes
++ Prefect UI still shows all flow runs + retry logic
++ Enterprise pattern preserved and transferable
++ Separation of concerns documented and defensible
+- Manual crontab management (mitigated by docs/backlog.md)
+
+## Evidence
+pipeline.jsonl + cron.log both updating cleanly post-fix.
+Commit: feature/govern-2
