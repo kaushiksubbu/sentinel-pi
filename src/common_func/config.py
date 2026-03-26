@@ -51,8 +51,9 @@ LOG_FILE = "/mnt/data/sentinel-pi/logs/cron.log"
 STRUCTURED_LOG_FILE = "/mnt/data/sentinel-pi/logs/pipeline.jsonl"
 
 # JSONL Read Config
-JSONL_RUNS_TO_READ = 6  # covers 1 hour of 10-min pipeline runs
-JSONL_LINES_PER_RUN = 8
+JSONL_RUNS_TO_READ = 48   # 48 x 10-min windows = 8 hrs coverage
+JSONL_LINES_PER_RUN = 8   # 8 stages per run
+# Total = 384 lines — manageable for 1B model
 
 # Ollama Config
 OLLAMA_URL = os.getenv(

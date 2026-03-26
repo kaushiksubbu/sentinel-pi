@@ -4,7 +4,8 @@
 # version 4 - New flow to modularize collection, writes and AI flow.
 import sys
 import subprocess
-from datetime import timedelta
+from datetime import timedelta, datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from prefect import flow, task, serve
 from prefect.runtime import flow_run
@@ -129,21 +130,7 @@ def ai_summary_flow():
 # ── Serve ──────────────────────────────────────────────
 
 if __name__ == "__main__":
-    serve(
-        collect_knmi_flow.to_deployment(
-            name="collect-knmi-schedule",
-            interval=timedelta(minutes=10)
-        ),
-        collect_zigbee_flow.to_deployment(
-            name="collect-zigbee-schedule",
-            interval=timedelta(minutes=6)
-        ),
-        load_transform_flow.to_deployment(
-            name="load-transform-schedule",
-            interval=timedelta(minutes=10)
-        ),
-        ai_summary_flow.to_deployment(
-            name="ai-summary-schedule",
-            interval=timedelta(hours=1)
-        ),
-    )
+    # Flows are triggered by cron via prefect deployment run
+    # See crontab for schedule configuration
+    # serve() removed — unstable on Pi with 4 concurrent schedules
+    pass

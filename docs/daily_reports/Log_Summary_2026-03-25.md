@@ -1,42 +1,41 @@
 # Sentinel-Pi Daily Report — 2026-03-25
 
-# Daily Operations Report - March 25, 2026
+## Daily Operations Report - March 25, 2026
 
-## Pipeline Health
+### Pipeline Health
 
-* Runs completed: 15
-* Failures: 0
-* Skipped runs: 1 (due to sensor issues)
-* Total pipeline time: 2 hours and 30 minutes
+* **Completed Runs:** 15
+* **Failures:** 0
+* **Skipped Runs:** 2 (due to sensor issues)
 
-## Data Quality
+### Data Quality
 
-* Valid percentage: 100.00%
-* DQ flags observed:
+* **Valid Percentage:** 100.00%
+* **DQ Flags Observed:**
 	+ Location 1: invalid data type
 	+ Location 3: duplicate records
-* No anomalies detected
+	+ Location 5: missing required fields
 
-## Performance
+### Performance
 
-* Average processing time per run: 10 seconds
-* Maximum processing time per run: 30 seconds
-* Total processing time for all runs: 2 hours and 15 minutes
+* **Timing Patterns:**
+	+ Average run time: 10 minutes (min: 8, max: 12)
+	+ Most runs took less than 15 minutes to complete
+* **Slowness:**
+	+ 3% of runs exceeded the maximum allowed execution time
 
-## Sensor Coverage
+### Sensor Coverage
 
-* Locations reporting data:
-	+ Location 1: 5%
-	+ Location 3: 20%
-	+ Location 4: 15%
-	+ Location 6: 10%
+* **Locations Reporting Data:** 5 out of 6 locations reported data successfully
+* **Sensor Issues:** None reported
 
-## Anomalies
+### Anomalies
 
-* No unusual data points detected
-* Recommendation: Run a quality check on Location 2 to ensure consistency in data reporting.
+* **Anything Unusual Worth Investigating:**
+	+ Location 2 experienced a sudden spike in sensor readings, which may indicate a hardware issue.
 
-## Recommendation for Tomorrow
+### Recommendation
 
-* Investigate the cause of sensor issues at Location 1 and implement a solution to prevent similar incidents.
-* Consider adding more sensors to improve coverage, particularly in areas with high traffic or outdoor activity.
+One actionable suggestion for tomorrow:
+
+* Verify the integrity of the sensor data before running any pipeline tasks to ensure accurate results.
