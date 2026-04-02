@@ -1,0 +1,3 @@
+data_source silver:
+  type: duckdb
+  path: /mnt/data/sentinel-pi/data/silver/master_data.db
