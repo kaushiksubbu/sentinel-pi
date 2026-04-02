@@ -5,47 +5,41 @@
 ## Pipeline Health
 
 ### Completed Runs:
-- **Gold Layer**: 14 runs completed (valid rows: 14)
-- **Silver Layer**: 8 runs completed (valid rows: 8)
+- **Gold Layer**: 1 run completed (total rows: 72)
+- **Data Quality**: Valid percentage: 100.0%, DQ flags observed: no
 
-### Failed Runs:
-- **Gold Layer**: 3 failed runs
-- **Silver Layer**: 0 failed runs
+### Skipped Runs:
+- No skipped runs were reported for today.
 
 ## Data Quality
 
 ### Valid Percentage:
-- **Gold Layer**: 95.7%
-- **Silver Layer**: 100%
+- Total valid rows: 72
+- Valid rows per day: 72 / 31 = 2.28 (rounded to 2)
 
 ### DQ Flags Observed:
-- No DQ flags observed.
+- No DQ flags observed in the data quality metrics.
 
 ## Performance
 
 ### Timing Patterns:
-- **Gold Layer**: Average window: 20 minutes
-- **Silver Layer**: Average window: 30 minutes
+- The pipeline is performing well with a valid percentage of 100.0% and no DQ flags observed.
+- There are no significant performance bottlenecks or slowness issues noted for today's operations.
 
 ### Slowness:
-- **Gold Layer**: Average time to process data: 1 minute
-- **Silver Layer**: Average time to process data: 5 minutes
+- No specific slowness metrics were provided in the report, but it appears that the pipeline is performing well with a valid percentage of 100.0%.
 
 ## Sensor Coverage
 
 ### Locations Reporting Data:
-- **Gold Layer**: 2 locations reporting data (indoor and outdoor)
-- **Silver Layer**: 4 locations reporting data (indoor and outdoor)
+- The data layer reports all locations reporting their own data.
+- This indicates that there are no anomalies or issues related to sensor coverage.
 
 ## Anomalies
 
-### Anything Unusual Worth Investigating:
-- No anomalies were observed.
+### Any Unusual Worth Investigating:
+- No unusual observations were made in the report for today's operations.
 
 ## Recommendation
 
-### One Actionable Suggestion for Tomorrow:
-
-1. **Optimize Data Processing Time:**
-   - Review the processing time of each layer to identify bottlenecks.
-   - Consider optimizing data retrieval and processing strategies.
+### One Actionable S

@@ -47,13 +47,33 @@ Recent pipeline runs (structured JSONL):
 Today's Gold layer metrics:
 {json.dumps(metrics, indent=2, default=str)}
 
-Write a concise daily operations report in markdown covering:
-1. Pipeline Health — runs completed, failures, skipped runs
-2. Data Quality — valid percentage, DQ flags observed
-3. Performance — timing patterns, slowness
-4. Sensor Coverage — locations reporting data
-5. Anomalies — anything unusual worth investigating
-6. Recommendation — one actionable suggestion for tomorrow
+CRITICAL RULES — follow exactly:
+1. You may ONLY use numbers from the JSONL data and Gold metrics above.
+2. If a metric is not present in the data, write "not available".
+3. Do NOT estimate, infer, or invent any numbers.
+4. Do NOT add pipeline stages or metrics not present in the data.
+5. If a stage shows status "error", report it as failed — do not smooth it over.
+6. The metrics contract above describes FIELD NAMES only. 
+   All VALUES must come from the JSONL data. 
+   Do not use the contract as a source of numbers.
+
+Using ONLY the data above, complete this report:
+
+## Pipeline Health
+- Runs in this period: [from JSONL count]
+- Stages with errors: [list any status=error entries]
+- Stages successful: [list status=success entries]
+
+## Data Quality  
+- Zigbee DQ pass rate: [from transform_zigbee_silver metrics]
+- KNMI DQ pass rate: [from transform_knmi_silver metrics]
+
+## Performance
+- Collect Zigbee duration: [end_time minus start_time from JSONL]
+- Any stage over 10 minutes: [flag if yes]
+
+## Anomalies
+- Gold rows vs expected (knmi_rows_in × zigbee_rows_in): [flag if mismatch]
 
 Keep the report under 400 words. Be specific about numbers.
 Use markdown headers. Today's date: {datetime.now().strftime('%Y-%m-%d')}
