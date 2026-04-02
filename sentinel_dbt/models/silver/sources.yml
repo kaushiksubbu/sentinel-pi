@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: silver
+    database: master_data
+    schema: main
+    tables:
+      - name: weather_silver

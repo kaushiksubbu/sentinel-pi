@@ -1,0 +1,13 @@
+version: 2
+
+models:
+  - name: knmi_silver_validated
+    columns:
+      - name: observed_at
+        tests:
+          - not_null
+      - name: data_provider
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['knmi']
