@@ -664,3 +664,19 @@ Consequences:
 - Silver materialised as table — physical artifact per 
   medallion principle
 - BL-011: dbt test task added to Prefect pipeline (Phase 3)
+
+**ADR-046 draft:**
+ADR-046 — Soda Core Independent Validation Layer
+Status: Accepted / Implemented
+Date: 2026-04-03
+
+Decision: Soda Core DuckDB scans Silver table 
+independently of pipeline execution.
+Thresholds mirror pipeline config (KNMI 84%, Zigbee 94%).
+FAIL on KNMI temp range confirms 3 out-of-range rows — 
+correct behaviour, pipeline preserves them with is_valid=False.
+
+Rationale: dbt tests transformation output at build time.
+Soda Core scans live table at any time independently.
+Two systems agreeing on the same bad rows = 
+governance story is provable.
