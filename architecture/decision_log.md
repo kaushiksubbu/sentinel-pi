@@ -635,3 +635,32 @@ external schedulers (AWS EventBridge, GCP Cloud Scheduler).
 ## Evidence
 pipeline.jsonl + cron.log both updating cleanly post-fix.
 Commit: feature/govern-2
+
+# ADR-045 — dbt Integration Strategy
+Status: Accepted / Implemented
+Date: 2026-04-02
+
+Context: Pipeline validation logic embedded inside Python 
+transform scripts. No independent test layer. 
+Silver/Gold quality assertions coupled to pipeline code — 
+cannot be run independently or reported separately.
+
+Decision: dbt-core + dbt-duckdb as transformation 
+test layer. Models wrap existing Silver/Gold SQL. 
+Tests defined in schema.yml — independent of 
+pipeline execution. Prefect remains orchestrator — 
+dbt runs as one task inside pipeline.
+
+Rationale: 
+- Decouples validation from transformation code
+- Tests run independently of pipeline (dbt test)
+- Dutch market JD standard — dbt in 60%+ data roles
+- Enterprise path: local dbt → dbt Cloud (Phase 3)
+- Zero rewrite — existing Silver SQL becomes dbt models
+
+Consequences:
+- sentinel_dbt/ folder under project root
+- profiles.yml at ~/.dbt/ — not in repo (gitignore)
+- Silver materialised as table — physical artifact per 
+  medallion principle
+- BL-011: dbt test task added to Prefect pipeline (Phase 3)

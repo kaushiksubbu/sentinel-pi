@@ -70,10 +70,18 @@ WHERE table_schema = 'main'
     ''').fetchall()
 )
 
+
 print(silver_con.execute('''
-SELECT * from knmi_silver_validated;
+EXPLAIN ANALYZE SELECT data_provider, count(*) from weather_silver group by data_provider;
     ''').fetchall()
 )
+
+# print(silver_con.execute('''
+# SELECT count(*) from knmi_silver_validated
+# union
+# select count(*) from weather_silver where data_provider = 'knmi';
+#     ''').fetchall()
+# )
 
 
 #print(ops_con.execute('SELECT * FROM watermarks').fetchall())
