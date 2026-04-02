@@ -53,8 +53,8 @@ CRITICAL RULES — follow exactly:
 3. Do NOT estimate, infer, or invent any numbers.
 4. Do NOT add pipeline stages or metrics not present in the data.
 5. If a stage shows status "error", report it as failed — do not smooth it over.
-6. The metrics contract above describes FIELD NAMES only. 
-   All VALUES must come from the JSONL data. 
+6. The metrics contract above describes FIELD NAMES only.
+   All VALUES must come from the JSONL data.
    Do not use the contract as a source of numbers.
 
 Using ONLY the data above, complete this report:
@@ -64,7 +64,7 @@ Using ONLY the data above, complete this report:
 - Stages with errors: [list any status=error entries]
 - Stages successful: [list status=success entries]
 
-## Data Quality  
+## Data Quality
 - Zigbee DQ pass rate: [from transform_zigbee_silver metrics]
 - KNMI DQ pass rate: [from transform_knmi_silver metrics]
 

@@ -24,8 +24,10 @@ logs/
 ollama/
 models/src/scratch.py
 
+
 #Scratch test files
 src/temp_and_scratch/*
+
 
 # lock files
 locks/prefect.db
