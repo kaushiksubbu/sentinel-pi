@@ -680,3 +680,65 @@ Rationale: dbt tests transformation output at build time.
 Soda Core scans live table at any time independently.
 Two systems agreeing on the same bad rows = 
 governance story is provable.
+
+**ADR-047 draft:**
+ADR-047 — OpenLineage + Marquez Lineage Stack
+Status: Accepted / Implemented
+Date: TBD
+
+Context: EU AI Act Article 13 requires AI transparency
+and provenance. TPM CV requires provable lineage
+ownership. Pi RAM constraint (HA baseline 1.3-2.5GB)
+prevents always-on Marquez.
+
+Decision:
+- Marquez on-demand via docker-compose.marquez.yml
+  API + Postgres only — no UI in production
+- OpenLineage Python client in container scripts
+  not pipeline_flow.py — event tied to producing stage
+- Baseline measured before and after Marquez deploy
+  Numbers recorded for CV and ADR evidence
+
+Constraints (from Arch Guru):
+- HA + addons: 1.3-2.5GB baseline
+- Total active cap: 5-6GB (2-3GB headroom for HA)
+- Marquez must not exceed 1GB additional RAM
+
+Consequences:
+- Lineage emission non-blocking — fails silently
+- Pipeline never blocked by lineage failure
+- Clean audit trail: Bronze → Silver → Gold provable
+- EU AI Act Article 13 compliance statement enabled
+
+**ADR-048 draft:**
+ADR-048 — Staging/Production DB Swap Pattern
+Status: DEFERRED
+Reason: Iceberg MVCC supersedes staging/production 
+        swap pattern entirely.
+        Building now = throwaway work.
+Date: 2026-04-06
+
+Context: DuckDB file-level locking causes write-read 
+contention between pipeline writes and Soda/Gold reads.
+Current connect_to_db_readonly() insufficient — 
+lock contention still occurs during heavy writes.
+
+Decision (proposed):
+- Silver: master_data_staging.db → master_data.db (swap)
+- Gold: analytics_staging.db → analytics.db (swap)
+- All reads (Soda, AI summary, Gold) from production only
+- Swap is atomic OS rename — not a copy
+- Watermark advances only after successful swap
+
+Rationale:
+- Atomic rename is OS-level operation — cannot partially fail
+- Readers never see incomplete state
+- Soda scan decoupled from pipeline write cycle
+- Blue/green deployment pattern at DB file level
+
+Consequences:
+- config.py needs SILVER_STAGING_DB, GOLD_STAGING_DB constants
+- connect_to_db() writes to staging
+- swap_to_production() called after write + validation
+- Watermark update moves inside swap transaction
+- Soda scan schedule can run any time safely

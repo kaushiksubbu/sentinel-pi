@@ -72,10 +72,33 @@ WHERE table_schema = 'main'
 
 
 print(silver_con.execute('''
-EXPLAIN ANALYZE SELECT data_provider, count(*) from weather_silver group by data_provider;
+select humidity,temp from weather_silver where data_provider='knmi' and temp not between -25 and 45;
     ''').fetchall()
 )
+# Check NULLs specifically
+print("NULL temp rows (KNMI):")
+print(silver_con.execute("""
+    SELECT COUNT(*)
+    FROM weather_silver
+    WHERE data_provider = 'knmi'
+    AND temp IS NULL
+""").fetchall())
 
+# Check boundary values exactly
+print("Boundary temp rows (KNMI):")
+print(silver_con.execute("""
+    SELECT temp as val , COUNT(*)
+    FROM weather_silver
+    WHERE data_provider = 'knmi'
+    AND (temp <= -24 OR temp >= 44) and NOT isnan(temp)
+    GROUP BY val
+    union all
+    SELECT humidity as val,  COUNT(*)
+    FROM weather_silver
+    WHERE data_provider = 'knmi'
+    and (humidity <= 30 or humidity>= 101) and (humidity <> 'nan')
+    GROUP BY val
+""").fetchall())
 # print(silver_con.execute('''
 # SELECT count(*) from knmi_silver_validated
 # union
