@@ -1,11 +1,6 @@
 name: flake8 lint
 
 on: [push, pull_request]
-on:
-  push:
-    branches: [ main, "feature/**" ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   lint:
