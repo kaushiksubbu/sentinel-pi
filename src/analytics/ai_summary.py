@@ -169,10 +169,10 @@ def main():
     try:
         print("Reading structured pipeline JSONL...")
         emit_lineage_event(
-            job_name="ai_summary",  
+            job_name="ai_summary",
             run_id=run_id,
             state="START",
-            inputs=["gold.gold_weather"],        
+            inputs=["gold.gold_weather"],
             outputs=["docs.daily_report"]
         )
         jsonl_entries = read_recent_jsonl()
@@ -192,10 +192,10 @@ def main():
         print("\n--- REPORT PREVIEW ---")
         print(report[:500])
         emit_lineage_event(
-            job_name="ai_summary",  
+            job_name="ai_summary",
             run_id=run_id,
             state="COMPLETE",
-            inputs=["gold.gold_weather"],        
+            inputs=["gold.gold_weather"],
             outputs=["docs.daily_report"]
         )
         write_jsonl_entry(
@@ -209,10 +209,10 @@ def main():
         )
     except Exception as e:
         emit_lineage_event(
-            job_name="ai_summary",  
+            job_name="ai_summary",
             run_id=run_id,
             state="FAIL",
-            inputs=["gold.gold_weather"],        
+            inputs=["gold.gold_weather"],
             outputs=["docs.daily_report"]
         )
         write_jsonl_entry(

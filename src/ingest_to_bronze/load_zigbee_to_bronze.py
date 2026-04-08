@@ -83,12 +83,12 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
             return
 
         logging.info(f"Found {len(zigbee_files)} Zigbee files")
-        
+
         emit_lineage_event(
-            job_name="load_knmi_files_to_bronze",  
+            job_name="load_knmi_files_to_bronze",
             run_id=run_id,
             state="START",
-            inputs=["bronze.landing_zone"],        
+            inputs=["bronze.landing_zone"],
             outputs=["bronze.zigbee_raw"]
         )
         # Read and load data
@@ -153,10 +153,10 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
 
         logging.info("=== ZIGBEE_LOAD_SUCCESS ===")
         emit_lineage_event(
-            job_name="load_knmi_files_to_bronze",  
+            job_name="load_knmi_files_to_bronze",
             run_id=run_id,
             state="COMPLETED",
-            inputs=["bronze.landing_zone"],        
+            inputs=["bronze.landing_zone"],
             outputs=["bronze.zigbee_raw"]
         )
         write_jsonl_entry(
@@ -173,10 +173,10 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
         logging.error(f"  Traceback: {traceback.format_exc()}")
         logging.info("=== ZIGBEE_LOAD_FAILED ===")
         emit_lineage_event(
-            job_name="load_knmi_files_to_bronze",  
+            job_name="load_knmi_files_to_bronze",
             run_id=run_id,
             state="FAIL",
-            inputs=["bronze.landing_zone"],        
+            inputs=["bronze.landing_zone"],
             outputs=["bronze.zigbee_raw"]
         )
         write_jsonl_entry(

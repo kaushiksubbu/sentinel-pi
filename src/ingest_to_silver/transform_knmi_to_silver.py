@@ -175,7 +175,7 @@ def transform_knmi_to_silver():
         ops_con = connect_to_db(OPS_DB)
 
         create_table_with_ddl(ops_con, CREATE_WATERMARKS)
-        
+
         # Open Lineage set up
         emit_lineage_event(
             job_name="transform_knmi_silver",

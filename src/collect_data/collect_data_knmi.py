@@ -22,11 +22,11 @@ def collect_knmi():
     logging.info("Starting KNMI data collection (Bronze)...")
     run_id = get_run_id()
     emit_lineage_event(
-    job_name="collect_data_knmi",
-    run_id=run_id,
-    state="START",
-    inputs=["KNMI API"],
-    outputs=["bronze.landing"]
+        job_name="collect_data_knmi",
+        run_id=run_id,
+        state="START",
+        inputs=["KNMI API"],
+        outputs=["bronze.landing"]
     )
     try:
         file_path = fetch_knmi_file(
@@ -36,11 +36,11 @@ def collect_knmi():
         )
         logging.info(f"KNMI raw file saved to: {file_path}")
         emit_lineage_event(
-        job_name="collect_data_knmi",
-        run_id=run_id,
-        state="COMPLETE",
-        inputs=["KNMI API"],
-        outputs=["bronze.landing"]
+            job_name="collect_data_knmi",
+            run_id=run_id,
+            state="COMPLETE",
+            inputs=["KNMI API"],
+            outputs=["bronze.landing"]
         )
         write_jsonl_entry(
             stage="collect_knmi",
@@ -55,11 +55,11 @@ def collect_knmi():
     except Exception as e:
         logging.error(f"KNMI collection failed: {str(e)}")
         emit_lineage_event(
-        job_name="collect_data_knmi",
-        run_id=run_id,
-        state="FAIL",
-        inputs=["KNMI API"],
-        outputs=["bronze.landing"]
+            job_name="collect_data_knmi",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["KNMI API"],
+            outputs=["bronze.landing"]
         )
         write_jsonl_entry(
             stage="collect_knmi",

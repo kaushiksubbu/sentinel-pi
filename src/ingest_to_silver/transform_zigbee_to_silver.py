@@ -225,10 +225,10 @@ def transform_zigbee_to_silver():
         create_table_with_ddl(ops_con, CREATE_WATERMARKS)
 
         emit_lineage_event(
-            job_name="transform_zigbee_silver",  
+            job_name="transform_zigbee_silver",
             run_id=run_id,
             state="START",
-            inputs=["bronze.zigbee_raw"],        
+            inputs=["bronze.zigbee_raw"],
             outputs=["silver.weather_silver"]
         )
 
@@ -257,10 +257,10 @@ def transform_zigbee_to_silver():
         )
 
         emit_lineage_event(
-            job_name="transform_zigbee_silver",  
+            job_name="transform_zigbee_silver",
             run_id=run_id,
             state="COMPLETE",
-            inputs=["bronze.zigbee_raw"],        
+            inputs=["bronze.zigbee_raw"],
             outputs=["silver.weather_silver"]
         )
 

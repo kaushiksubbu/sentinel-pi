@@ -1,7 +1,7 @@
 # --- Collect Zigbee → Bronze (JSON files) ---
 from config import (
     PROJECT_DIR,
-    COLLECT_ZIGBEE_SCRIPT, 
+    COLLECT_ZIGBEE_SCRIPT,
 )
 from datetime import datetime, timezone
 from pipeline_logger import write_jsonl_entry
@@ -21,11 +21,11 @@ def collect_zigbee():
 
     logging.info("Starting Zigbee data collection (Bronze)...")
     emit_lineage_event(
-    job_name="collect_data_zigbee",  
-    run_id=run_id,
-    state="START",
-    inputs=["Zigbee MQTT"],        
-    outputs=["bronze.landing_zone"]
+        job_name="collect_data_zigbee",
+        run_id=run_id,
+        state="START",
+        inputs=["Zigbee MQTT"],
+        outputs=["bronze.landing_zone"]
     )
 
     try:
@@ -37,22 +37,22 @@ def collect_zigbee():
         )
         if result.returncode == 0:
             emit_lineage_event(
-                job_name="collect_data_zigbee",  
+                job_name="collect_data_zigbee",
                 run_id=run_id,
                 state="COMPLETE",
-                inputs=["Zigbee MQTT"],        
+                inputs=["Zigbee MQTT"],
                 outputs=["bronze.landing_zone"]
-                )
+            )
             logging.info("Zigbee data collection completed (Bronze).")
         else:
             logging.error(f"Zigbee collection failed: {result.stderr}")
             emit_lineage_event(
-                job_name="collect_data_zigbee",  
+                job_name="collect_data_zigbee",
                 run_id=run_id,
                 state="FAIL",
-                inputs=["Zigbee MQTT"],        
+                inputs=["Zigbee MQTT"],
                 outputs=["bronze.landing_zone"]
-                )
+            )
             write_jsonl_entry(
                 stage="collect_zigbee_wrapper",
                 status="error",
@@ -62,12 +62,12 @@ def collect_zigbee():
     except Exception as e:
         logging.error(f"Error running Zigbee collection: {str(e)}")
         emit_lineage_event(
-                job_name="collect_data_zigbee",  
-                run_id=run_id,
-                state="FAIL",
-                inputs=["Zigbee MQTT"],        
-                outputs=["bronze.landing_zone"]
-                )
+            job_name="collect_data_zigbee",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["Zigbee MQTT"],
+            outputs=["bronze.landing_zone"]
+        )
         write_jsonl_entry(
             stage="collect_zigbee_wrapper",
             status="error",
