@@ -6,12 +6,12 @@
 
 ZIGBEE_CONTRACT = {
     "temperature": ["temperature", "temp", "tmp"],
-    "humidity":    ["humidity", "hum", "rh"],
-    "battery":     ["battery", "bat"],
+    "humidity": ["humidity", "hum", "rh"],
+    "battery": ["battery", "bat"],
 }
 
 KNMI_CONTRACT = {
     "temperature": ["ta"],
-    "humidity":    ["rh"],
-    "wind_speed":  ["ff"],
+    "humidity": ["rh"],
+    "wind_speed": ["ff"],
 }

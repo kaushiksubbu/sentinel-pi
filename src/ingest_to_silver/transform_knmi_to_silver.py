@@ -5,13 +5,13 @@ from pipeline_logger import write_jsonl_entry
 from datetime import datetime, timezone
 from db_utils import connect_to_db, close_db, create_table_with_ddl
 from config import BRONZE_DB, SILVER_DB, OPS_DB
+from openlineage_emitter import emit_lineage_event, get_run_id
 import logging
 import duckdb
 import os
 import sys
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'common_func'))
-from openlineage_emitter import emit_lineage_event, get_run_id
 
 
 CREATE_WATERMARKS = """
@@ -200,8 +200,8 @@ def transform_knmi_to_silver():
             f"Watermark: {result['watermark']}"
         )
 
-         # Open Lineage set up
-        emit_lineage_event(        
+        # Open Lineage set up
+        emit_lineage_event(
             job_name="transform_knmi_silver",
             run_id=run_id,
             state="COMPLETE",
@@ -209,7 +209,6 @@ def transform_knmi_to_silver():
             outputs=["silver.weather_silver"]
         )
 
-        
         write_jsonl_entry(
             stage="transform_knmi_silver",
             status="success",
@@ -224,7 +223,7 @@ def transform_knmi_to_silver():
 
     except Exception as e:
         logging.error(f"KNMI Silver | Transform failed | {e}")
-        emit_lineage_event(        
+        emit_lineage_event(
             job_name="transform_knmi_silver",
             run_id=run_id,
             state="FAIL",

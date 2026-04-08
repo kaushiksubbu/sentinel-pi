@@ -742,3 +742,31 @@ Consequences:
 - swap_to_production() called after write + validation
 - Watermark update moves inside swap transaction
 - Soda scan schedule can run any time safely
+
+### ADR-049 — OpenLineage + Marquez Lineage Stack
+Status: Accepted / Partially Implemented
+Date: 2026-04-08
+
+Context: EU AI Act Article 13 requires provenance.
+Marquez evaluated as lineage collector + UI.
+
+Decision:
+- Marquez DEFERRED — no ARM64 image available
+  exec format error confirmed on Pi ARM64
+- OpenLineage Python client IMPLEMENTED
+  Events emitted to JSONL file
+  Lineage provable from structured file
+- dbt-ol wrapper pattern adopted for dbt runs
+  Captures dbt artifacts + emits OpenLineage metadata
+
+Rationale:
+- Lineage DATA is the compliance artifact
+  not the visualisation tool
+- JSONL lineage file queryable, auditable, CV-defensible
+- Marquez revisited in Phase 3 when cloud deployment
+  removes ARM64 constraint
+
+Consequences:
+- lineage/openlineage_events.jsonl as audit artifact
+- dbt-ol wraps dbt run in pipeline
+- Zero RAM overhead — no container needed

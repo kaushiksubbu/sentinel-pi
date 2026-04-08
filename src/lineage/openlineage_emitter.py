@@ -40,16 +40,16 @@ def emit_lineage_event(
         os.makedirs(os.path.dirname(LINEAGE_FILE), exist_ok=True)
 
         event = {
-            "eventType":  state,
-            "eventTime":  datetime.now(timezone.utc).isoformat(),
-            "run":        {"runId": run_id},
-            "job":        {
+            "eventType": state,
+            "eventTime": datetime.now(timezone.utc).isoformat(),
+            "run": {"runId": run_id},
+            "job": {
                 "namespace": NAMESPACE,
-                "name":      job_name
+                "name": job_name
             },
-            "inputs":     inputs or [],
-            "outputs":    outputs or [],
-            "producer":   "sentinel-pi/pipeline"
+            "inputs": inputs or [],
+            "outputs": outputs or [],
+            "producer": "sentinel-pi/pipeline"
         }
 
         with open(LINEAGE_FILE, "a") as f:
