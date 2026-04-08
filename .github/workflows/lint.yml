@@ -1,0 +1,26 @@
+name: Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: pip install flake8 autopep8
+
+      - name: autopep8 fix
+        run: |
+          autopep8 --in-place --aggressive --aggressive \
+            --global-config .flake8 \
+            -r src/
+
+      - name: flake8 check
+        run: flake8 src/
