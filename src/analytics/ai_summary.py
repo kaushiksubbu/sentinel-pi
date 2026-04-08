@@ -21,6 +21,8 @@ import json
 import requests
 from datetime import datetime, timezone
 import sys
+from openlineage_emitter import emit_lineage_event, get_run_id
+
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'common_func'))
 
@@ -162,8 +164,17 @@ def save_report(content: str) -> str:
 
 def main():
     start_time = datetime.now(timezone.utc)
+    run_id = get_run_id()          # added as a part of Openlineage
+
     try:
         print("Reading structured pipeline JSONL...")
+        emit_lineage_event(
+            job_name="ai_summary",  
+            run_id=run_id,
+            state="START",
+            inputs=["gold.gold_weather"],        
+            outputs=["docs.daily_report"]
+        )
         jsonl_entries = read_recent_jsonl()
 
         print("Reading Gold metrics...")
@@ -180,7 +191,13 @@ def main():
         print(f"Report saved: {filepath}")
         print("\n--- REPORT PREVIEW ---")
         print(report[:500])
-
+        emit_lineage_event(
+            job_name="ai_summary",  
+            run_id=run_id,
+            state="COMPLETE",
+            inputs=["gold.gold_weather"],        
+            outputs=["docs.daily_report"]
+        )
         write_jsonl_entry(
             stage="ai_summary",
             status="success",
@@ -191,6 +208,13 @@ def main():
             )
         )
     except Exception as e:
+        emit_lineage_event(
+            job_name="ai_summary",  
+            run_id=run_id,
+            state="FAIL",
+            inputs=["gold.gold_weather"],        
+            outputs=["docs.daily_report"]
+        )
         write_jsonl_entry(
             stage="ai_summary",
             status="error",

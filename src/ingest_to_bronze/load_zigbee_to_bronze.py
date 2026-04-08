@@ -13,6 +13,8 @@ import glob
 import db_utils
 import logging
 import sys
+from openlineage_emitter import emit_lineage_event, get_run_id
+
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'common_func'))
 
@@ -59,6 +61,7 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
     """
     logging.info("=== ZIGBEE_LOAD_START ===")
     start_time = datetime.now(timezone.utc)
+    run_id = get_run_id()          # added as a part of Openlineage
 
     try:
         con = db_utils.connect_to_db(db_path)
@@ -80,7 +83,14 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
             return
 
         logging.info(f"Found {len(zigbee_files)} Zigbee files")
-
+        
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",  
+            run_id=run_id,
+            state="START",
+            inputs=["bronze.landing_zone"],        
+            outputs=["bronze.zigbee_raw"]
+        )
         # Read and load data
         rows = []
         for file_path in zigbee_files:
@@ -142,6 +152,13 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
                 logging.error(f"Failed to move {file_path}: {move_err}")
 
         logging.info("=== ZIGBEE_LOAD_SUCCESS ===")
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",  
+            run_id=run_id,
+            state="COMPLETED",
+            inputs=["bronze.landing_zone"],        
+            outputs=["bronze.zigbee_raw"]
+        )
         write_jsonl_entry(
             stage="load_zigbee_bronze",
             status="success",
@@ -155,6 +172,13 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
         import traceback
         logging.error(f"  Traceback: {traceback.format_exc()}")
         logging.info("=== ZIGBEE_LOAD_FAILED ===")
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",  
+            run_id=run_id,
+            state="FAIL",
+            inputs=["bronze.landing_zone"],        
+            outputs=["bronze.zigbee_raw"]
+        )
         write_jsonl_entry(
             stage="load_zigbee_bronze",
             status="error",
