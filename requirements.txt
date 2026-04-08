@@ -17,3 +17,4 @@ xarray==2026.2.0
 isodate==0.7.2
 soda-core==3.5.6
 soda-core-duckdb==3.5.6
+openlineage-python==1.46.0

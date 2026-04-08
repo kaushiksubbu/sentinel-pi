@@ -61,3 +61,7 @@ OLLAMA_URL = os.getenv(
     "http://localhost:11434/api/generate"
 )
 OLLAMA_MODEL = "llama3.2:1b-instruct-q4_K_M"
+
+# Lineage file
+LINEAGE_FILE = "/mnt/data/sentinel-pi/logs/openlineage_events.jsonl"
+NAMESPACE = "sentinel-pi"

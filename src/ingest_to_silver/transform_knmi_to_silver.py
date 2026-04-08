@@ -11,6 +11,7 @@ import os
 import sys
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'common_func'))
+from openlineage_emitter import emit_lineage_event, get_run_id
 
 
 CREATE_WATERMARKS = """
@@ -163,6 +164,7 @@ def transform_knmi_to_silver():
     Each step independently responsible.
     """
     start_time = datetime.now(timezone.utc)
+    run_id = get_run_id()          # added as a part of Openlineage
     bronze_con = None
     silver_con = None
     ops_con = None
@@ -197,6 +199,17 @@ def transform_knmi_to_silver():
             f"Invalid: {result['invalid']} | "
             f"Watermark: {result['watermark']}"
         )
+
+         # Open Lineage set up
+        emit_lineage_event(        
+            job_name="transform_knmi_silver",
+            run_id=run_id,
+            state="COMPLETE",
+            inputs=["bronze.knmi_raw"],
+            outputs=["silver.weather_silver"]
+        )
+
+        
         write_jsonl_entry(
             stage="transform_knmi_silver",
             status="success",
@@ -211,6 +224,13 @@ def transform_knmi_to_silver():
 
     except Exception as e:
         logging.error(f"KNMI Silver | Transform failed | {e}")
+        emit_lineage_event(        
+            job_name="transform_knmi_silver",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["bronze.knmi_raw"],
+            outputs=["silver.weather_silver"]
+        )
         write_jsonl_entry(
             stage="transform_knmi_silver",
             status="error",
