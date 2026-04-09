@@ -19,6 +19,7 @@ def docker_run(image: str, extra_flags: list = []):
     run_name = flow_run.name or "unscheduled"
     cmd = [
         "docker", "run", "--rm",
+        "--pull", "never",
         "-v", "/mnt/data/sentinel-pi/src:/mnt/data/sentinel-pi/src",
         "-v", "/mnt/data/sentinel-pi/data:/mnt/data/sentinel-pi/data",
         "-v", "/mnt/data/sentinel-pi/logs:/mnt/data/sentinel-pi/logs",
