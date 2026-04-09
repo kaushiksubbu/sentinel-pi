@@ -37,43 +37,43 @@ def docker_run(image: str, extra_flags: list = []):
 
 @task(name="collect-knmi", retries=2, retry_delay_seconds=30)
 def collect_knmi():
-    return docker_run("sentinel-pi-collect-knmi:v1.0")
+    return docker_run("sentinel-pi-collect-knmi:latest")
 
 
 @task(name="collect-zigbee", retries=2, retry_delay_seconds=30)
 def collect_zigbee():
-    return docker_run("sentinel-pi-collect-zigbee:v1.0")
+    return docker_run("sentinel-pi-collect-zigbee:latest")
 
 
 @task(name="load-knmi-bronze", retries=2, retry_delay_seconds=30)
 def load_knmi_bronze():
-    return docker_run("sentinel-pi-load-knmi-bronze:v1.0")
+    return docker_run("sentinel-pi-load-knmi-bronze:latest")
 
 
 @task(name="load-zigbee-bronze", retries=2, retry_delay_seconds=30)
 def load_zigbee_bronze():
-    return docker_run("sentinel-pi-load-zigbee-bronze:v1.0")
+    return docker_run("sentinel-pi-load-zigbee-bronze:latest")
 
 
 @task(name="transform-knmi-silver", retries=2, retry_delay_seconds=30)
 def transform_knmi_silver():
-    return docker_run("sentinel-pi-transform-knmi-silver:v1.0")
+    return docker_run("sentinel-pi-transform-knmi-silver:latest")
 
 
 @task(name="transform-zigbee-silver", retries=2, retry_delay_seconds=30)
 def transform_zigbee_silver():
-    return docker_run("sentinel-pi-transform-zigbee-silver:v1.0")
+    return docker_run("sentinel-pi-transform-zigbee-silver:latest")
 
 
 @task(name="transform-gold", retries=2, retry_delay_seconds=30)
 def transform_gold():
-    return docker_run("sentinel-pi-transform-gold:v1.0")
+    return docker_run("sentinel-pi-transform-gold:latest")
 
 
 @task(name="ai-summary", retries=1, retry_delay_seconds=60)
 def ai_summary():
     return docker_run(
-        "sentinel-pi-ai-summary:v1.0",
+        "sentinel-pi-ai-summary:latest",
         extra_flags=[
             "-v", "/mnt/data/sentinel-pi/docs:/mnt/data/sentinel-pi/docs",
             "--add-host", "host.docker.internal:host-gateway",
