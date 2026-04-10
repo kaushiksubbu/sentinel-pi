@@ -4,10 +4,7 @@ from datetime import datetime, timezone
 from metrics_contract import BronzeMetrics
 from pipeline_logger import write_jsonl_entry
 from db_utils import (
-    connect_to_db,
     close_db,
-    create_table_with_ddl,
-    bulk_insert_ignore,
 )
 from config import BRONZE_DB, BRONZE_ZIGBEE_TBL, BRONZE_LANDING
 import os
@@ -16,6 +13,8 @@ import glob
 import db_utils
 import logging
 import sys
+from openlineage_emitter import emit_lineage_event, get_run_id
+
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'common_func'))
 
@@ -62,6 +61,7 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
     """
     logging.info("=== ZIGBEE_LOAD_START ===")
     start_time = datetime.now(timezone.utc)
+    run_id = get_run_id()          # added as a part of Openlineage
 
     try:
         con = db_utils.connect_to_db(db_path)
@@ -84,6 +84,13 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
 
         logging.info(f"Found {len(zigbee_files)} Zigbee files")
 
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",
+            run_id=run_id,
+            state="START",
+            inputs=["bronze.landing_zone"],
+            outputs=["bronze.zigbee_raw"]
+        )
         # Read and load data
         rows = []
         for file_path in zigbee_files:
@@ -102,7 +109,7 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
                                 # Prefer message topic
                                 "topic": message.get("topic", file_topic),
                                 "payload": json.dumps(message.get("payload", {})),
-                                "timestamp": datetime.fromisoformat(message.get("timestamp", "2026-01-01T00:00:00")),
+                                "timestamp": datetime.fromisoformat(message.get("timestamp", "2026-01-01T00:00:00")),  # noqa: E501
                                 "source_file": os.path.basename(file_path)
                             })
                 else:
@@ -145,6 +152,13 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
                 logging.error(f"Failed to move {file_path}: {move_err}")
 
         logging.info("=== ZIGBEE_LOAD_SUCCESS ===")
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",
+            run_id=run_id,
+            state="COMPLETED",
+            inputs=["bronze.landing_zone"],
+            outputs=["bronze.zigbee_raw"]
+        )
         write_jsonl_entry(
             stage="load_zigbee_bronze",
             status="success",
@@ -158,6 +172,13 @@ def load_zigbee_to_duckdb(db_path: str, table: str, landing_dir: str):
         import traceback
         logging.error(f"  Traceback: {traceback.format_exc()}")
         logging.info("=== ZIGBEE_LOAD_FAILED ===")
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["bronze.landing_zone"],
+            outputs=["bronze.zigbee_raw"]
+        )
         write_jsonl_entry(
             stage="load_zigbee_bronze",
             status="error",

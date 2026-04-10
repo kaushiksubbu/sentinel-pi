@@ -21,6 +21,8 @@ import json
 import requests
 from datetime import datetime, timezone
 import sys
+from openlineage_emitter import emit_lineage_event, get_run_id
+
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'common_func'))
 
@@ -39,7 +41,7 @@ Pipeline stage metrics contract:
 - transform_knmi_silver / transform_zigbee_silver: records_in, records_out, dq_pass_rate
 - transform_gold: knmi_rows_in, zigbee_rows_in, gold_rows_written
   Rule: gold_rows_written MUST equal knmi_rows_in × zigbee_rows_in. Flag if not.
-- dq_pass_rate below {KNMI_COMPLETENESS_MIN*100} for KNMI or {ZIGBEE_COMPLETENESS_MIN*100} for Zigbee — flag as warning
+- dq_pass_rate below {KNMI_COMPLETENESS_MIN*100} for KNMI or {ZIGBEE_COMPLETENESS_MIN*100} for Zigbee — flag as warning # noqa: E501
 
 Recent pipeline runs (structured JSONL):
 {json.dumps(jsonl_entries, indent=2, default=str)}
@@ -47,13 +49,33 @@ Recent pipeline runs (structured JSONL):
 Today's Gold layer metrics:
 {json.dumps(metrics, indent=2, default=str)}
 
-Write a concise daily operations report in markdown covering:
-1. Pipeline Health — runs completed, failures, skipped runs
-2. Data Quality — valid percentage, DQ flags observed
-3. Performance — timing patterns, slowness
-4. Sensor Coverage — locations reporting data
-5. Anomalies — anything unusual worth investigating
-6. Recommendation — one actionable suggestion for tomorrow
+CRITICAL RULES — follow exactly:
+1. You may ONLY use numbers from the JSONL data and Gold metrics above.
+2. If a metric is not present in the data, write "not available".
+3. Do NOT estimate, infer, or invent any numbers.
+4. Do NOT add pipeline stages or metrics not present in the data.
+5. If a stage shows status "error", report it as failed — do not smooth it over.
+6. The metrics contract above describes FIELD NAMES only.
+   All VALUES must come from the JSONL data.
+   Do not use the contract as a source of numbers.
+
+Using ONLY the data above, complete this report:
+
+## Pipeline Health
+- Runs in this period: [from JSONL count]
+- Stages with errors: [list any status=error entries]
+- Stages successful: [list status=success entries]
+
+## Data Quality
+- Zigbee DQ pass rate: [from transform_zigbee_silver metrics]
+- KNMI DQ pass rate: [from transform_knmi_silver metrics]
+
+## Performance
+- Collect Zigbee duration: [end_time minus start_time from JSONL]
+- Any stage over 10 minutes: [flag if yes]
+
+## Anomalies
+- Gold rows vs expected (knmi_rows_in × zigbee_rows_in): [flag if mismatch]
 
 Keep the report under 400 words. Be specific about numbers.
 Use markdown headers. Today's date: {datetime.now().strftime('%Y-%m-%d')}
@@ -104,7 +126,6 @@ def read_gold_metrics() -> dict:
         return {"error": str(e)}
 
 
-
 def call_llama3_2_1b(prompt: str) -> str:
     """Call llama3.2:1b via Ollama API."""
     try:
@@ -115,16 +136,16 @@ def call_llama3_2_1b(prompt: str) -> str:
                 "prompt": prompt,
                 "stream": False,
                 "options": {
-                            "num_predict": 300,   # hard cap on output tokens
-                            "temperature": 0.1    # less creative = faster = more factual
-                            }
+                    "num_predict": 600,   # hard cap on output tokens
+                    "temperature": 0.1    # less creative = faster = more factual
+                }
             },
-            timeout=300,
+            timeout=1800,
         )
         response.raise_for_status()
         return response.json().get("response", "No response from Phi3.")
     except Exception as e:
-        return f"Phi3 call failed: {str(e)}"
+        return f"llama3 call failed: {str(e)}"
 
 
 def save_report(content: str) -> str:
@@ -143,8 +164,17 @@ def save_report(content: str) -> str:
 
 def main():
     start_time = datetime.now(timezone.utc)
+    run_id = get_run_id()          # added as a part of Openlineage
+
     try:
         print("Reading structured pipeline JSONL...")
+        emit_lineage_event(
+            job_name="ai_summary",
+            run_id=run_id,
+            state="START",
+            inputs=["gold.gold_weather"],
+            outputs=["docs.daily_report"]
+        )
         jsonl_entries = read_recent_jsonl()
 
         print("Reading Gold metrics...")
@@ -161,7 +191,13 @@ def main():
         print(f"Report saved: {filepath}")
         print("\n--- REPORT PREVIEW ---")
         print(report[:500])
-
+        emit_lineage_event(
+            job_name="ai_summary",
+            run_id=run_id,
+            state="COMPLETE",
+            inputs=["gold.gold_weather"],
+            outputs=["docs.daily_report"]
+        )
         write_jsonl_entry(
             stage="ai_summary",
             status="success",
@@ -172,6 +208,13 @@ def main():
             )
         )
     except Exception as e:
+        emit_lineage_event(
+            job_name="ai_summary",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["gold.gold_weather"],
+            outputs=["docs.daily_report"]
+        )
         write_jsonl_entry(
             stage="ai_summary",
             status="error",

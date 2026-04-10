@@ -530,3 +530,243 @@ Context: Phase 1 AI summary hallucinations traced to unstructured cron.log input
 Decision: pipeline.jsonl replaces cron.log as primary pipeline observability artifact. One JSON line per stage per run. JSONL_RUNS_TO_READ=5, JSONL_LINES_PER_RUN=8 — reads last 40 lines (~10KB).
 Rationale: AI summary has ground truth metrics. Hallucination root cause eliminated at source. JSONL is append-only, lightweight (~250 bytes/line), and trivially queryable. cron.log deprecated — removal in Govern.2.
 Consequences: Zero AI hallucinations from logging input. Structured observability enables future Soda Core and OpenLineage integration in Govern.2.
+
+ADR-042: CI/CD Lint Enforcement via GitHub Actions - flake8 + GitHub Actions as Code Quality Gate
+Status: Implemented
+Date: 2026-03-23
+
+Context:
+  Duplicate function definition in collect_knmi caused
+  silent wrong behaviour in Govern.1. No automated check
+  existed to catch this class of error.
+
+Decision:
+  GitHub Actions workflow triggers flake8 on every push
+  to feature/** and main. max-line-length=100.
+  temp_and_scratch excluded. Zero tolerance on F-class
+  errors (undefined names, unused imports).
+
+Consequences:
+  + Silent bugs caught before merge
+  + CI caught flow_run F821 that local env missed
+  + Enterprise engineering practice on portfolio project
+  + Every commit is now provably clean
+
+Evidence: d1c616b — green CI in 13s
+
+
+# ADR-043: NAS Failover Dual-Write Strategy
+
+**Status:** Accepted — Backlog (Govern.2 Week 2)
+**Date:** 2026-03-26
+
+## Context
+NAS drive (sda1/sdb1) disconnected mid-session on 2026-03-23.
+Prefect server died due to SQLite lock on prefect.db stored
+on NAS. Pipeline data collection stopped silently for 3.5hrs.
+No alert. No failover. Single point of failure confirmed.
+
+## Decision
+Dual-write pipeline.jsonl and DuckDB databases to:
+- Primary:   /mnt/data/sentinel-pi/ (NAS)
+- Secondary: /home/kaushik/sentinel-pi/data-failover/ (Pi SD)
+
+Cron healthcheck every 5 mins:
+If /mnt/data unmounted → symlink failover path → log alert.
+
+## Rationale
+Pi SD card (mmcblk0, 235GB) has sufficient headroom.
+Ephemeral containers read latest timestamp via watermark —
+zero pipeline break on failover activation.
+NAS is convenience not necessity for pipeline operation.
+
+## Consequences
++ Pipeline survives NAS disconnect automatically
++ No data loss on drive failure
++ Alert logged for human review
+- Dual-write adds minor I/O overhead (acceptable)
+
+## Implementation
+Week 2.
+
+# ADR-044: Cron Scheduling + Prefect Execution
+
+**Status:** Accepted / Implemented
+**Date:** 2026-03-26
+
+## Context
+Prefect serve() managing 4 concurrent high-frequency
+deployments (6min, 10min, 10min, daily) caused scheduler
+starvation on Pi 8GB. last_polled froze. Flows stopped
+firing silently. AI summary continued (hourly) but
+collection flows dead for 3.5+ hours on two occasions.
+
+Root cause: serve() scheduler loop starved under
+concurrent schedule pressure on constrained hardware.
+
+## Decision
+Separate scheduling from execution:
+- Cron: triggers deployments on schedule (4 entries)
+- Prefect: executes flows, handles retry, observability, UI
+
+serve() removed from pipeline_flow.py.
+anchor_date removed — not supported in Prefect 3.6.22.
+
+## Cron Schedule
+*/10  collect-knmi    (KNMI publish cadence)
+*/6   collect-zigbee  (MQTT 5-min window + 1-min gap)
+*/10  load-transform  (watermark-driven, safe overlap)
+08:30 ai-summary      (daily digest)
+
+## Rationale
+Cron has scheduled Linux jobs reliably for 50 years.
+Prefect's value is execution (retry, UI, observability)
+not scheduling on constrained hardware.
+Same pattern as enterprise: Airflow DAGs triggered by
+external schedulers (AWS EventBridge, GCP Cloud Scheduler).
+
+## Consequences
++ Zero scheduler starvation — cron never freezes
++ Prefect UI still shows all flow runs + retry logic
++ Enterprise pattern preserved and transferable
++ Separation of concerns documented and defensible
+- Manual crontab management (mitigated by docs/backlog.md)
+
+## Evidence
+pipeline.jsonl + cron.log both updating cleanly post-fix.
+Commit: feature/govern-2
+
+# ADR-045 — dbt Integration Strategy
+Status: Accepted / Implemented
+Date: 2026-04-02
+
+Context: Pipeline validation logic embedded inside Python 
+transform scripts. No independent test layer. 
+Silver/Gold quality assertions coupled to pipeline code — 
+cannot be run independently or reported separately.
+
+Decision: dbt-core + dbt-duckdb as transformation 
+test layer. Models wrap existing Silver/Gold SQL. 
+Tests defined in schema.yml — independent of 
+pipeline execution. Prefect remains orchestrator — 
+dbt runs as one task inside pipeline.
+
+Rationale: 
+- Decouples validation from transformation code
+- Tests run independently of pipeline (dbt test)
+- Dutch market JD standard — dbt in 60%+ data roles
+- Enterprise path: local dbt → dbt Cloud (Phase 3)
+- Zero rewrite — existing Silver SQL becomes dbt models
+
+Consequences:
+- sentinel_dbt/ folder under project root
+- profiles.yml at ~/.dbt/ — not in repo (gitignore)
+- Silver materialised as table — physical artifact per 
+  medallion principle
+- BL-011: dbt test task added to Prefect pipeline (Phase 3)
+
+**ADR-046 draft:**
+ADR-046 — Soda Core Independent Validation Layer
+Status: Accepted / Implemented
+Date: 2026-04-03
+
+Decision: Soda Core DuckDB scans Silver table 
+independently of pipeline execution.
+Thresholds mirror pipeline config (KNMI 84%, Zigbee 94%).
+FAIL on KNMI temp range confirms 3 out-of-range rows — 
+correct behaviour, pipeline preserves them with is_valid=False.
+
+Rationale: dbt tests transformation output at build time.
+Soda Core scans live table at any time independently.
+Two systems agreeing on the same bad rows = 
+governance story is provable.
+
+**ADR-047 draft:**
+ADR-047 — OpenLineage + Marquez Lineage Stack
+Status: Accepted / Implemented
+Date: TBD
+
+Context: EU AI Act Article 13 requires AI transparency
+and provenance. TPM CV requires provable lineage
+ownership. Pi RAM constraint (HA baseline 1.3-2.5GB)
+prevents always-on Marquez.
+
+Decision:
+- Marquez on-demand via docker-compose.marquez.yml
+  API + Postgres only — no UI in production
+- OpenLineage Python client in container scripts
+  not pipeline_flow.py — event tied to producing stage
+- Baseline measured before and after Marquez deploy
+  Numbers recorded for CV and ADR evidence
+
+Constraints (from Arch Guru):
+- HA + addons: 1.3-2.5GB baseline
+- Total active cap: 5-6GB (2-3GB headroom for HA)
+- Marquez must not exceed 1GB additional RAM
+
+Consequences:
+- Lineage emission non-blocking — fails silently
+- Pipeline never blocked by lineage failure
+- Clean audit trail: Bronze → Silver → Gold provable
+- EU AI Act Article 13 compliance statement enabled
+
+**ADR-048 draft:**
+ADR-048 — Staging/Production DB Swap Pattern
+Status: DEFERRED
+Reason: Iceberg MVCC supersedes staging/production 
+        swap pattern entirely.
+        Building now = throwaway work.
+Date: 2026-04-06
+
+Context: DuckDB file-level locking causes write-read 
+contention between pipeline writes and Soda/Gold reads.
+Current connect_to_db_readonly() insufficient — 
+lock contention still occurs during heavy writes.
+
+Decision (proposed):
+- Silver: master_data_staging.db → master_data.db (swap)
+- Gold: analytics_staging.db → analytics.db (swap)
+- All reads (Soda, AI summary, Gold) from production only
+- Swap is atomic OS rename — not a copy
+- Watermark advances only after successful swap
+
+Rationale:
+- Atomic rename is OS-level operation — cannot partially fail
+- Readers never see incomplete state
+- Soda scan decoupled from pipeline write cycle
+- Blue/green deployment pattern at DB file level
+
+Consequences:
+- config.py needs SILVER_STAGING_DB, GOLD_STAGING_DB constants
+- connect_to_db() writes to staging
+- swap_to_production() called after write + validation
+- Watermark update moves inside swap transaction
+- Soda scan schedule can run any time safely
+
+### ADR-049 — OpenLineage + Marquez Lineage Stack
+Status: Accepted / Partially Implemented
+Date: 2026-04-08
+
+Context: EU AI Act Article 13 requires provenance.
+Marquez evaluated as lineage collector + UI.
+
+Decision:
+- Marquez DEFERRED — no ARM64 image available
+  exec format error confirmed on Pi ARM64
+- OpenLineage Python client IMPLEMENTED
+  Events emitted to JSONL file
+  Lineage provable from structured file
+- dbt-ol wrapper pattern adopted for dbt runs
+  Captures dbt artifacts + emits OpenLineage metadata
+
+Rationale:
+- Lineage DATA is the compliance artifact
+  not the visualisation tool
+- JSONL lineage file queryable, auditable, CV-defensible
+- Marquez revisited in Phase 3 when cloud deployment
+  removes ARM64 constraint
+
+Consequences:
+- lineage/openlineage_events.jsonl as audit artifact
+- dbt-ol wraps dbt run in pipeline
+- Zero RAM overhead — no container needed

@@ -6,6 +6,8 @@ from pipeline_logger import write_jsonl_entry
 from datetime import datetime, timezone
 from db_utils import connect_to_db, close_db, create_table_with_ddl
 from config import BRONZE_DB, SILVER_DB, OPS_DB
+from openlineage_emitter import emit_lineage_event, get_run_id
+
 import logging
 import duckdb
 import json
@@ -50,8 +52,8 @@ def get_watermark(ops_con, source: str) -> datetime:
     Returns 0001-01-01 if no watermark exists.
     """
     result = ops_con.execute("""
-        SELECT last_processed 
-        FROM watermarks 
+        SELECT last_processed
+        FROM watermarks
         WHERE source = ?
     """, [source]).fetchone()
 
@@ -65,7 +67,7 @@ def update_watermark(ops_con, source: str, timestamp: datetime):
     Updates watermark for source after successful transform.
     """
     ops_con.execute("""
-        INSERT OR REPLACE INTO watermarks 
+        INSERT OR REPLACE INTO watermarks
         (source, last_processed, updated_at)
         VALUES (?, ?, ?)
     """, [
@@ -154,9 +156,9 @@ def write_zigbee_silver(
     invalid_count = sum(1 for row in silver_rows if row[6] is False)
 
     return {
-        "total":     len(silver_rows),
-        "valid":     valid_count,
-        "invalid":   invalid_count,
+        "total": len(silver_rows),
+        "valid": valid_count,
+        "invalid": invalid_count,
         "watermark": max_observed_at,
     }
 
@@ -210,6 +212,7 @@ def transform_zigbee_to_silver():
     Excludes Bath at read stage.
     """
     start_time = datetime.now(timezone.utc)
+    run_id = get_run_id()          # added as a part of Openlineage
     bronze_con = None
     silver_con = None
     ops_con = None
@@ -220,6 +223,14 @@ def transform_zigbee_to_silver():
         ops_con = connect_to_db(OPS_DB)
 
         create_table_with_ddl(ops_con, CREATE_WATERMARKS)
+
+        emit_lineage_event(
+            job_name="transform_zigbee_silver",
+            run_id=run_id,
+            state="START",
+            inputs=["bronze.zigbee_raw"],
+            outputs=["silver.weather_silver"]
+        )
 
         # Step 1 — Read
         watermark = get_watermark(ops_con, 'zigbee')
@@ -244,6 +255,15 @@ def transform_zigbee_to_silver():
             f"Invalid: {result['invalid']} | "
             f"Watermark: {result['watermark']}"
         )
+
+        emit_lineage_event(
+            job_name="transform_zigbee_silver",
+            run_id=run_id,
+            state="COMPLETE",
+            inputs=["bronze.zigbee_raw"],
+            outputs=["silver.weather_silver"]
+        )
+
         write_jsonl_entry(
             stage="transform_zigbee_silver",
             status="success",
@@ -258,6 +278,13 @@ def transform_zigbee_to_silver():
 
     except Exception as e:
         logging.error(f"Zigbee Silver | Transform failed | {e}")
+        emit_lineage_event(
+            job_name="transform_zigbee_silver",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["bronze.zigbee_raw"],
+            outputs=["silver.weather_silver"]
+        )
         write_jsonl_entry(
             stage="transform_zigbee_silver",
             status="error",

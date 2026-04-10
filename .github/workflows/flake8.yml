@@ -1,0 +1,26 @@
+name: flake8 lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install flake8 and autopep8
+        run: pip install flake8 autopep8
+
+      - name: autopep8 fix
+        run: |
+          autopep8 --in-place --aggressive --aggressive \
+            --global-config .flake8 \
+            -r src/
+
+      - name: Run flake8
+        run: flake8 src/ --config=.flake8

@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: knmi_silver_validated
+    description: "KNMI outdoor weather Silver layer"
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "temp >= -25 and temp <= 45"
+          config:
+            severity: warn
+      - dbt_utils.expression_is_true:
+          expression: "humidity >= 40 and humidity <= 100"
+          config:
+            severity: warn
+    columns:
+      - name: observed_at
+        tests:
+          - not_null
+      - name: data_provider
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['knmi']
+
+  - name: zigbee_silver_validated
+    description: "Zigbee indoor sensor Silver layer"
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "temp >= 14 and temp <= 30"
+          config:
+            severity: warn
+      - dbt_utils.expression_is_true:
+          expression: "humidity >= 25 and humidity <= 85"
+          config:
+            severity: warn
+    columns:
+      - name: observed_at
+        tests:
+          - not_null
+      - name: data_provider
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['zigbee']

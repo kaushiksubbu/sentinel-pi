@@ -17,6 +17,7 @@ import duckdb
 import logging
 import os
 import sys
+from openlineage_emitter import emit_lineage_event, get_run_id
 sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), '..', 'common_func'))
 
@@ -205,9 +206,9 @@ def write_gold(
     invalid_count = sum(1 for row in gold_rows if row[11] is False)
 
     return {
-        "total":     len(gold_rows),
-        "valid":     valid_count,
-        "invalid":   invalid_count,
+        "total": len(gold_rows),
+        "valid": valid_count,
+        "invalid": invalid_count,
         "watermark": max_window_start,
     }
 
@@ -222,6 +223,7 @@ def transform_silver_to_gold():
     silver_con = None
     gold_con = None
     ops_con = None
+    run_id = get_run_id()          # added as a part of Openlineage
 
     try:
         silver_con = connect_to_db(SILVER_DB)
@@ -232,6 +234,13 @@ def transform_silver_to_gold():
 
         # Step 1 — Read
         watermark = get_watermark(ops_con, 'gold_weather')
+        emit_lineage_event(
+            job_name="transform_silver_to_gold",
+            run_id=run_id,
+            state="START",
+            inputs=["silver.weather_silver"],
+            outputs=["gold.gold_weather"]
+        )
         knmi_rows, zigbee_rows = read_silver_for_gold(
             silver_con, watermark
         )
@@ -260,6 +269,13 @@ def transform_silver_to_gold():
 
         dq_pass_rate = round(result['valid'] / result['total'] * 100, 1) \
             if result['total'] > 0 else 0.0
+        emit_lineage_event(
+            job_name="transform_silver_to_gold",
+            run_id=run_id,
+            state="COMPLETE",
+            inputs=["silver.weather_silver"],
+            outputs=["gold.gold_weather"]
+        )
         write_jsonl_entry(
             stage="transform_gold",
             status="success",
@@ -275,6 +291,13 @@ def transform_silver_to_gold():
 
     except Exception as e:
         logging.error(f"Gold | Transform failed | {e}")
+        emit_lineage_event(
+            job_name="transform_silver_to_gold",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["silver.weather_silver"],
+            outputs=["gold.gold_weather"]
+        )
         write_jsonl_entry(
             stage="transform_gold",
             status="error",

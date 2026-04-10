@@ -1,0 +1,53 @@
+checks for weather_silver:
+
+  # Row volume check — pipeline must be producing data
+  - row_count > 0
+
+  # No fully null temperature rows
+  - missing_count(temp) = 0:
+      name: "No null temperatures"
+
+  # No fully null humidity rows  
+  - missing_count(humidity) = 0:
+      name: "No null humidity"
+
+  # KNMI temperature range
+  - invalid_count(temp) = 0:
+      name: "KNMI temp in valid range"
+      valid min: -25
+      valid max: 45
+      filter: "data_provider = 'knmi' AND temp is NOT NULL AND NOT isnan(temp)"
+
+  # KNMI humidity range
+  - invalid_count(humidity) = 0:
+      name: "KNMI humidity in valid range"
+      valid min: 30
+      valid max: 101
+      filter: "data_provider = 'knmi' AND humidity is NOT NULL AND NOT isnan(humidity)"
+
+  # Zigbee temperature range
+  - invalid_count(temp) = 0:
+      name: "Zigbee temp in valid range"
+      valid min: 14
+      valid max: 30
+      filter: data_provider = 'zigbee' AND temp is NOT NULL
+
+  # Zigbee humidity range
+  - invalid_count(humidity) = 0:
+      name: "Zigbee humidity in valid range"
+      valid min: 25
+      valid max: 85
+      filter: data_provider = 'zigbee' AND humidity is NOT NULL
+
+  # KNMI valid row percentage — mirrors pipeline threshold 84%
+  - invalid_count(is_valid) < 16:
+      name: "KNMI completeness above 84 percent"
+      valid values: [true]
+      filter: data_provider = 'knmi'
+
+  # Zigbee valid row percentage — mirrors pipeline threshold 94%
+  - invalid_count(is_valid) < 6:
+      name: "Zigbee completeness above 94 percent"
+      valid values: [true]
+      filter: data_provider = 'zigbee'
+

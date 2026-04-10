@@ -51,8 +51,9 @@ LOG_FILE = "/mnt/data/sentinel-pi/logs/cron.log"
 STRUCTURED_LOG_FILE = "/mnt/data/sentinel-pi/logs/pipeline.jsonl"
 
 # JSONL Read Config
-JSONL_RUNS_TO_READ = 2 #changed from 5
-JSONL_LINES_PER_RUN = 8
+JSONL_RUNS_TO_READ = 48   # 48 x 10-min windows = 8 hrs coverage
+JSONL_LINES_PER_RUN = 8   # 8 stages per run
+# Total = 384 lines — manageable for 1B model
 
 # Ollama Config
 OLLAMA_URL = os.getenv(
@@ -60,3 +61,7 @@ OLLAMA_URL = os.getenv(
     "http://localhost:11434/api/generate"
 )
 OLLAMA_MODEL = "llama3.2:1b-instruct-q4_K_M"
+
+# Lineage file
+LINEAGE_FILE = "/mnt/data/sentinel-pi/logs/openlineage_events.jsonl"
+NAMESPACE = "sentinel-pi"

@@ -13,6 +13,7 @@ from db_utils import (
     bulk_insert_ignore,
 )
 from config import BRONZE_DB, BRONZE_LANDING, PROCESSED_DIR, STATIONS
+from openlineage_emitter import emit_lineage_event, get_run_id
 
 from pipeline_logger import write_jsonl_entry
 from metrics_contract import BronzeMetrics
@@ -98,8 +99,8 @@ def extract_all_variables(ds: xr.Dataset, station_id: str, source_file: str) -> 
             return None
 
     return {
-        "station_id":   station_id,
-        "observed_at":  observed_at_utc,
+        "station_id": station_id,
+        "observed_at": observed_at_utc,
         "D1H": get("D1H"), "Q1H": get("Q1H"), "Q24H": get("Q24H"),
         "R12H": get("R12H"), "R1H": get("R1H"), "R24H": get("R24H"),
         "R6H": get("R6H"), "Sav1H": get("Sav1H"), "Sax1H": get("Sax1H"),
@@ -157,6 +158,7 @@ def load_knmi_files_to_bronze():
     start_time = datetime.now(timezone.utc)
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     files = get_unprocessed_files(BRONZE_LANDING)
+    run_id = get_run_id()          # added as a part of Openlineage
 
     if not files:
         logging.info("KNMI Bronze: No unprocessed files found.")
@@ -192,8 +194,15 @@ def load_knmi_files_to_bronze():
     # Explicit external pattern for writes
     con = connect_to_db(BRONZE_DB)
     try:
-        create_table_with_ddl(con, CREATE_KNMI_RAW)
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",
+            run_id=run_id,
+            state="START",
+            inputs=["bronze.landing_zone"],
+            outputs=["bronze.knmi_raw"]
+        )
 
+        create_table_with_ddl(con, CREATE_KNMI_RAW)
         # bulk load
 
         insert_log = bulk_insert_ignore(con, TABLE_NAME, rows)
@@ -213,6 +222,14 @@ def load_knmi_files_to_bronze():
             )
             logging.info(f"KNMI Bronze: Moved {file_path} → processed/")
 
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",
+            run_id=run_id,
+            state="COMPLETED",
+            inputs=["bronze.landing_zone"],
+            outputs=["bronze.knmi_raw"]
+        )
+
         write_jsonl_entry(
             stage="load_knmi_bronze",
             status="success",
@@ -222,6 +239,13 @@ def load_knmi_files_to_bronze():
 
     except Exception as e:
         logging.error(f"KNMI Bronze: Bulk insert failed | {e}")
+        emit_lineage_event(
+            job_name="load_knmi_files_to_bronze",
+            run_id=run_id,
+            state="FAIL",
+            inputs=["bronze.landing_zone"],
+            outputs=["bronze.knmi_raw"]
+        )
         # Files stay in landing zone — safe to retry next cron run
         write_jsonl_entry(
             stage="load_knmi_bronze",

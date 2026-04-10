@@ -114,6 +114,22 @@ Separate Prefect deployment
 Cron: "0 8 * * *" — not every 10 mins
 Wasteful to run every pipeline cycle
 
+### Govern Week1 closing status.
+BL-000  CLOSED    flake8 CI — green CI 13s
+BL-001  OPEN      Medium  Govern.2  Merge Zigbee collect scripts
+BL-002  OPEN      Medium  Govern.2  Deprecate cron.log
+BL-003  CLOSED    superseded by BL-000
+BL-006  OPEN      Medium  Govern.2  Retire collect_data_raw.py
+BL-007  CLOSED    Prefect stability resolved — no longer needed
+BL-008  CLOSED    Prefect stability resolved — no longer needed
+BL-009  OPEN      High    Govern.2  TZ=Europe/Amsterdam all scripts
+BL-010  OPEN      High    Govern.2  .env bash safety
+BL-011  OPEN      Low     Phase 3   Immutable image CI/CD
+BL-012  OPEN      Medium  Govern.2  NAS health monitoring cron
+BL-013  OPEN      High    Govern.2  docs/backlog.md single source
+BL-014  OPEN      Low     Govern.2  Bronze watermark review
+BL-015  OPEN      Medium  Govern.2  AI summary daily — monitor RAM
+
 dbt Integration
 
  pip install dbt-core dbt-duckdb
@@ -254,3 +270,4 @@ Priority: High — Govern.2 Week 1
  DataHub / Atlan — Dutch market contract registry tools
 Atlan used at Booking.com and Adyen
 Enterprise path from metrics_contract.py TypedDict
+

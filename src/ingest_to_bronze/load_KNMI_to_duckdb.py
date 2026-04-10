@@ -1,7 +1,6 @@
 # save_weather_to_duckdb.py
 import db_utils
 import logging
-from datetime import datetime
 import os
 import sys
 sys.path.insert(0, os.path.join(
