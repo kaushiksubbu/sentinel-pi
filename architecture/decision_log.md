@@ -465,6 +465,7 @@ Marquez       → lightweight collector + UI (Docker native)
 
 ## [ADR-034] Data Freshness SLAs
 **Status:** Accepted — Govern.2 Backlog
+Update status: implementation Week 3
 **Date:** 2026-03-18
 
 **SLA Thresholds:**
@@ -558,6 +559,8 @@ Evidence: d1c616b — green CI in 13s
 # ADR-043: NAS Failover Dual-Write Strategy
 
 **Status:** Accepted — Backlog (Govern.2 Week 2)
+          Update: deferred — Iceberg MVCC supersedes
+          staging/production swap not needed
 **Date:** 2026-03-26
 
 ## Context
@@ -592,6 +595,8 @@ Week 2.
 # ADR-044: Cron Scheduling + Prefect Execution
 
 **Status:** Accepted / Implemented
+          pattern implemented
+          cron schedules, Prefect executes
 **Date:** 2026-03-26
 
 ## Context
@@ -745,6 +750,9 @@ Consequences:
 
 ### ADR-049 — OpenLineage + Marquez Lineage Stack
 Status: Accepted / Partially Implemented
+Update: Marquez ARM64 constraint confirmed
+          JSONL emission pattern implemented
+          Marquez deferred to Phase 3 cloud
 Date: 2026-04-08
 
 Context: EU AI Act Article 13 requires provenance.
@@ -770,3 +778,9 @@ Consequences:
 - lineage/openlineage_events.jsonl as audit artifact
 - dbt-ol wraps dbt run in pipeline
 - Zero RAM overhead — no container needed
+
+ADR-050 — Pi-Margin Unified Platform
+          New ADR to file:
+          Two business units, shared medallion
+          Two ChromaDB collections
+          ENTSO-E + CBS NL data sources

@@ -46,3 +46,11 @@ Action: Hands-on practice with:
   3. Structured output prompting (JSON mode)
   Map to Sentinel-Pi AI summary prompt design
 Priority: High — directly applicable to ai_summary.py
+
+KM-SODA-01: NaN handling across tools
+- SQL:        temp = temp (self-comparison)
+- Soda Core:  isnan(temp) (explicit function)  
+- DuckDB:     isnan(temp) OR temp != temp
+- dbt:        {{ not is_nan("temp") }}
+- Rule: always verify NaN syntax per tool —
+  never assume SQL standard applies
