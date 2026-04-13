@@ -271,3 +271,6 @@ Priority: High — Govern.2 Week 1
 Atlan used at Booking.com and Adyen
 Enterprise path from metrics_contract.py TypedDict
 
+BL-016 — Purge processed raw files older than 10 days
+
+Simple cron script. Target: /mnt/data/sentinel-pi/data/bronze/landing_zone/processed/. Delete files older than 10 days. Both KNMI .nc files and Zigbee .json files. Cron scheduled — not a Prefect task, not a pipeline stage. No metrics contract needed. No JSONL entry needed. Gitignored output — no repo impact.

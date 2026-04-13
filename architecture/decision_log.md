@@ -461,6 +461,9 @@ Marquez       → lightweight collector + UI (Docker native)
 **RAM budget:** 320MB total confirmed.
 **Blocked by:** Prefect stable (Govern.1 complete).
 
+Update
+Marquez rejected on ARM64 constraint. Official image not published for linux/arm64. JVM build overhead disproportionate to Pi hardware budget. Lineage capability preserved via OpenLineage Python client. Sink changed from Marquez (Postgres) to lineage_events table in ops.db — schema enforced, JOINable with watermarks and freshness_log, queryable via DuckDB. JSONL sink explicitly rejected — ops.db is the single governance store. Marquez deferred to Phase 3 cloud deployment where ARM64 constraint does not apply.
+
 ---
 
 ## [ADR-034] Data Freshness SLAs
@@ -554,7 +557,6 @@ Consequences:
   + Every commit is now provably clean
 
 Evidence: d1c616b — green CI in 13s
-
 
 # ADR-043: NAS Failover Dual-Write Strategy
 
@@ -779,8 +781,45 @@ Consequences:
 - dbt-ol wraps dbt run in pipeline
 - Zero RAM overhead — no container needed
 
-ADR-050 — Pi-Margin Unified Platform
+# ADR-050 — Pi-Margin Unified Platform
+Status: Accepted
+Date: 2026-04-08
           New ADR to file:
           Two business units, shared medallion
           Two ChromaDB collections
           ENTSO-E + CBS NL data sources
+
+# ADR-051 — dbt Certification Gate Between Silver and Gold 
+Status: New
+Context: dbt Silver validation models produce weather_silver_validated which was disconnected from Gold consumption. Gold was reading from weather_silver directly, bypassing dbt certification. Two scheduling concerns were conflated — raw ingestion (10 min) and analytical certification (hourly).
+Decision: Three-tier scheduling separation.
+Every 10 min → Bronze → weather_silver (Python)
+Every hour   → weather_silver → weather_silver_validated (dbt)
+Every hour   → weather_silver_validated → gold_weather (Python)
+Daily 08:30  → gold_weather → ai_summary
+Gold reads exclusively from weather_silver_validated. Single Gold table. Single source of truth.
+Rationale: Gold must be correct before it is fresh. Hourly Gold sufficient for current analytical use case. Architecture is streaming-ready — Phase 3 Zigbee streaming feeds the same weather_silver table. dbt cadence adjusts per platform capability without Gold schema changes. Two Gold tables explicitly rejected — split truth breaks consumer trust.
+Phase 3 Direction: Zigbee moves to streaming. Silver Zigbee near real-time. dbt + Gold sub-hourly on Databricks/Snowflake when platform migrates. Pi architecture does not block this transition.
+Consequences: Gold freshness moves from near-real-time to hourly. Acceptable for home environment analytics and predictive modelling. dbt requires hourly cron entry. Gold Prefect flow separated from 10-minute collection flow.
+
+# ADR-052 — lineage_events Schema in ops.db
+Status: New
+Context: Gate 3 originally designed to emit OpenLineage events to lineage_events.jsonl. JSONL rejected — cannot JOIN with watermarks or freshness_log, no schema enforcement, requires parsing on every query.
+Decision: OpenLineage events written to lineage_events table in ops.db.
+sqlCREATE TABLE IF NOT EXISTS lineage_events (
+    event_time        TIMESTAMP,
+    run_id            VARCHAR,
+    job_name          VARCHAR,
+    event_type        VARCHAR,
+    input_dataset     VARCHAR,
+    output_dataset    VARCHAR,
+    input_location    VARCHAR,
+    output_location   VARCHAR,
+    row_count         INTEGER,
+    processed_at      TIMESTAMP
+)
+Six emit points covering both raw sources:
+knmi_raw → weather_silver → weather_silver_validated → gold_weather
+zigbee_raw → weather_silver → weather_silver_validated → gold_weather
+Rationale: ops.db is the single governance database. Lineage JOINable with watermarks and freshness_log. Full provenance query derivable in SQL. EU AI Act Article 13 compliance statement derivable from single query across ops.db tables.
+Consequences: OpenLineage Python client used as emission standard. DuckDB ops.db replaces Marquez as lineage store. Stronger story than Marquez on Pi — governed schema, no JVM, no additional RAM overhead.
